@@ -48,6 +48,41 @@ class Keyword:
     def __hash__(self) -> int:
         return hash(self.id)
 
+    def has_embedding(self) -> bool:
+        """Check if keyword has an embedding generated."""
+        return bool(self.embedding)
+
+    def validate_embedding(self, expected_dims: int = 1536) -> bool:
+        """
+        Validate embedding dimensions.
+        
+        Args:
+            expected_dims: Expected number of dimensions (default: 1536 for OpenAI)
+            
+        Returns:
+            True if embedding is empty or has correct dimensions
+        """
+        if not self.embedding:
+            return True  # Empty is valid (not yet generated)
+        return len(self.embedding) == expected_dims
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for JSON serialization."""
+        return {
+            "id": str(self.id),
+            "text": self.text,
+            "normalized_text": self.normalized_text,
+            "search_volume": self.search_volume,
+            "difficulty": self.difficulty.value,
+            "intent": self.intent.value if self.intent else None,
+            "intent_confidence": self.intent_confidence,
+            "intent_explanation": self.intent_explanation,
+            "intent_signals": self.intent_signals,
+            "cluster_id": str(self.cluster_id) if self.cluster_id else None,
+            "has_embedding": self.has_embedding(),
+            "created_at": self.created_at.isoformat(),
+        }
+
 
 @dataclass
 class KeywordCluster:

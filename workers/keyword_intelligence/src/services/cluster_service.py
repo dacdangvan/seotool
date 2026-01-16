@@ -40,7 +40,7 @@ class KeywordClusterService:
         self,
         keywords: list[Keyword],
         config: ClusteringConfig | None = None,
-    ) -> list[KeywordCluster]:
+    ) -> tuple[list[KeywordCluster], list[Keyword]]:
         """
         Cluster keywords based on their embeddings.
         
@@ -49,24 +49,28 @@ class KeywordClusterService:
             config: Optional clustering configuration
             
         Returns:
-            List of keyword clusters
+            Tuple of (clusters, orphan_keywords)
+            - clusters: List of keyword clusters meeting min_cluster_size
+            - orphan_keywords: Keywords that didn't fit into any cluster
         """
         config = config or self.config
         log = logger.bind(keyword_count=len(keywords), config=config)
 
         # Filter keywords with embeddings
         keywords_with_embeddings = [kw for kw in keywords if kw.embedding]
+        keywords_without_embeddings = [kw for kw in keywords if not kw.embedding]
+        
         if len(keywords_with_embeddings) < config.min_cluster_size:
             log.warning(
                 "Not enough keywords with embeddings for clustering",
                 required=config.min_cluster_size,
                 actual=len(keywords_with_embeddings),
             )
-            # Return single cluster with all keywords
+            # Return single cluster with all keywords, or as orphans
             if keywords_with_embeddings:
                 cluster = self._create_cluster(keywords_with_embeddings)
-                return [cluster]
-            return []
+                return [cluster], keywords_without_embeddings
+            return [], keywords_without_embeddings
 
         log.info("Starting keyword clustering")
 
@@ -77,11 +81,18 @@ class KeywordClusterService:
         labels = self._perform_clustering(embeddings, config)
 
         # Group keywords by cluster label
-        clusters = self._build_clusters(keywords_with_embeddings, labels, embeddings)
+        clusters, orphans = self._build_clusters(keywords_with_embeddings, labels, embeddings)
+        
+        # Add keywords without embeddings to orphans
+        orphans.extend(keywords_without_embeddings)
 
-        log.info("Clustering complete", cluster_count=len(clusters))
+        log.info(
+            "Clustering complete",
+            cluster_count=len(clusters),
+            orphan_count=len(orphans),
+        )
 
-        return clusters
+        return clusters, orphans
 
     def _perform_clustering(
         self,
@@ -107,8 +118,13 @@ class KeywordClusterService:
         keywords: list[Keyword],
         labels: np.ndarray,
         embeddings: np.ndarray,
-    ) -> list[KeywordCluster]:
-        """Build cluster objects from clustering results."""
+    ) -> tuple[list[KeywordCluster], list[Keyword]]:
+        """
+        Build cluster objects from clustering results.
+        
+        Returns:
+            Tuple of (clusters, orphan_keywords)
+        """
         clusters: dict[int, list[tuple[Keyword, np.ndarray]]] = {}
 
         for keyword, label, embedding in zip(keywords, labels, embeddings):
@@ -117,6 +133,7 @@ class KeywordClusterService:
             clusters[label].append((keyword, embedding))
 
         result: list[KeywordCluster] = []
+        orphans: list[Keyword] = []
 
         for label, keyword_embeddings in clusters.items():
             kws = [kw for kw, _ in keyword_embeddings]
@@ -127,14 +144,15 @@ class KeywordClusterService:
                 cluster = self._create_cluster(kws, embs)
                 result.append(cluster)
             else:
-                # Mark as unclustered
+                # Collect as orphans instead of discarding
                 for kw in kws:
                     kw.cluster_id = None
+                orphans.extend(kws)
 
         # Sort by total search volume
         result.sort(key=lambda c: c.total_search_volume, reverse=True)
 
-        return result
+        return result, orphans
 
     def _create_cluster(
         self,

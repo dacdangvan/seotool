@@ -151,34 +151,42 @@ class KeywordIntelligenceAgent:
 
             # Step 4: Cluster keywords
             log.info("[Step 4/6] Clustering keywords by semantic similarity...")
-            clusters = self.cluster_service.cluster_keywords(keywords)
-            log.info(f"[Step 4/6] Complete: {len(clusters)} clusters created")
+            clusters, orphan_keywords = self.cluster_service.cluster_keywords(keywords)
+            log.info(
+                f"[Step 4/6] Complete: {len(clusters)} clusters, {len(orphan_keywords)} orphan keywords"
+            )
 
             self._check_timeout(start_time, "after clustering")
 
+            # Combine clustered and orphan keywords for persistence
+            all_keywords = []
+            for cluster in clusters:
+                all_keywords.extend(cluster.keywords)
+            all_keywords.extend(orphan_keywords)
+
             # Step 5: Persist to PostgreSQL (idempotent)
             log.info("[Step 5/6] Persisting to PostgreSQL...")
-            await self.repository.save_keywords(keywords)
+            await self.repository.save_keywords(all_keywords)
             await self.repository.save_clusters(clusters)
-            log.info(f"[Step 5/6] Complete: {len(keywords)} keywords, {len(clusters)} clusters saved")
+            log.info(f"[Step 5/6] Complete: {len(all_keywords)} keywords, {len(clusters)} clusters saved")
 
             self._check_timeout(start_time, "after persistence")
 
             # Step 6: Store in vector DB
             log.info("[Step 6/6] Storing embeddings in vector DB...")
-            await self.vector_storage.upsert_keywords(keywords)
+            await self.vector_storage.upsert_keywords(all_keywords)
             await self.vector_storage.upsert_clusters(clusters)
             log.info("[Step 6/6] Complete: Embeddings stored")
 
             # Calculate metrics
             processing_time_ms = int((time.time() - start_time) * 1000)
-            intent_distribution = self._calculate_intent_distribution(keywords)
-            total_volume = sum(kw.search_volume for kw in keywords)
+            intent_distribution = self._calculate_intent_distribution(all_keywords)
+            total_volume = sum(kw.search_volume for kw in all_keywords)
 
             result = KeywordAnalysisResult(
                 task_id=task.id,
                 status="completed",
-                keywords=keywords,
+                keywords=all_keywords,
                 clusters=clusters,
                 intent_distribution=intent_distribution,
                 total_search_volume=total_volume,
@@ -187,13 +195,15 @@ class KeywordIntelligenceAgent:
                     "locale": task.locale,
                     "target_url": task.target_url,
                     "cluster_stats": self.cluster_service.get_cluster_stats(clusters),
+                    "orphan_keywords_count": len(orphan_keywords),
                 },
             )
 
             log.info("=" * 50)
             log.info("KEYWORD ANALYSIS COMPLETE")
-            log.info(f"  Keywords: {len(keywords)}")
+            log.info(f"  Keywords: {len(all_keywords)}")
             log.info(f"  Clusters: {len(clusters)}")
+            log.info(f"  Orphans: {len(orphan_keywords)}")
             log.info(f"  Time: {processing_time_ms}ms")
             log.info("=" * 50)
 

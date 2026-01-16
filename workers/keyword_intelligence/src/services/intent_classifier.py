@@ -9,6 +9,7 @@ Features:
 """
 
 import json
+import re
 import structlog
 from typing import Protocol
 
@@ -136,7 +137,9 @@ Only respond with valid JSON, no explanation."""
             matched_signals: dict[SearchIntent, list[str]] = {}
 
             for intent, signals in self._intent_signals.items():
-                matches = [s for s in signals if s in text_lower]
+                # Use word boundary matching to avoid false positives
+                # e.g., "buyer" should not match "buy"
+                matches = self._match_signals_with_boundaries(text_lower, signals)
                 if matches:
                     intent_scores[intent] = len(matches)
                     matched_signals[intent] = matches
@@ -144,12 +147,14 @@ Only respond with valid JSON, no explanation."""
             if intent_scores:
                 # Get highest scoring intent
                 best_intent = max(intent_scores, key=lambda i: intent_scores[i])
-                max_score = intent_scores[best_intent]
+                
+                # Calculate confidence based on signal dominance
+                confidence = self._calculate_confidence(intent_scores, best_intent)
 
-                # Check if it's a clear winner (no ties or ambiguity)
-                if max_score >= 1:
+                # Check if it's a clear winner (confidence > 0.6)
+                if confidence >= 0.6:
                     keyword.intent = best_intent
-                    keyword.intent_confidence = min(0.9, 0.6 + (max_score * 0.1))
+                    keyword.intent_confidence = confidence
                     keyword.intent_signals = matched_signals.get(best_intent, [])
                     keyword.intent_explanation = self._generate_explanation(
                         keyword, best_intent, keyword.intent_confidence, 
@@ -162,6 +167,51 @@ Only respond with valid JSON, no explanation."""
                 ambiguous.append(keyword)
 
         return classified, ambiguous
+
+    def _match_signals_with_boundaries(
+        self,
+        text: str,
+        signals: list[str],
+    ) -> list[str]:
+        """
+        Match signals with word boundaries to avoid false positives.
+        
+        Examples:
+        - "buy python" matches "buy" ✓
+        - "python buyer guide" does NOT match "buy" ✓
+        """
+        matches = []
+        for signal in signals:
+            # Use word boundary matching
+            pattern = rf'\b{re.escape(signal)}\b'
+            if re.search(pattern, text, re.IGNORECASE):
+                matches.append(signal)
+        return matches
+
+    def _calculate_confidence(
+        self,
+        intent_scores: dict[SearchIntent, float],
+        best_intent: SearchIntent,
+    ) -> float:
+        """
+        Calculate confidence based on signal dominance.
+        
+        Confidence is based on how dominant the winning intent is
+        compared to other intents.
+        
+        Returns:
+            float: Confidence score 0.5 (tied) to 0.95 (clear winner)
+        """
+        total_score = sum(intent_scores.values())
+        if total_score == 0:
+            return 0.5
+        
+        best_score = intent_scores[best_intent]
+        dominance = best_score / total_score
+        
+        # Scale: 50% (tied) to 95% (clear winner)
+        confidence = 0.5 + (dominance * 0.45)
+        return min(0.95, confidence)
 
     @retry(
         stop=stop_after_attempt(3),
