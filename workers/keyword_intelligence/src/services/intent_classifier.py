@@ -1,8 +1,18 @@
-"""Keyword Intent Classifier - Classifies search intent using LLM."""
+"""
+Keyword Intent Classifier - Classifies search intent using LLM.
+
+Features:
+- Rule-based classification with signal detection
+- LLM fallback for ambiguous keywords
+- Explainable decisions (no black-box)
+- Retry-safe with tenacity
+"""
 
 import json
 import structlog
 from typing import Protocol
+
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from src.domain.models import Keyword, SearchIntent
 from src.config import Settings
@@ -108,18 +118,28 @@ Only respond with valid JSON, no explanation."""
         self,
         keywords: list[Keyword],
     ) -> tuple[list[Keyword], list[Keyword]]:
-        """Apply rule-based classification using keyword signals."""
+        """
+        Apply rule-based classification using keyword signals.
+        
+        Each classification includes:
+        - intent: The detected intent type
+        - confidence: How confident we are (0.0-1.0)
+        - intent_signals: Which signals triggered this classification
+        - intent_explanation: Human-readable explanation (explainable AI)
+        """
         classified: list[Keyword] = []
         ambiguous: list[Keyword] = []
 
         for keyword in keywords:
             text_lower = keyword.text.lower()
             intent_scores: dict[SearchIntent, float] = {}
+            matched_signals: dict[SearchIntent, list[str]] = {}
 
             for intent, signals in self._intent_signals.items():
-                score = sum(1 for signal in signals if signal in text_lower)
-                if score > 0:
-                    intent_scores[intent] = score
+                matches = [s for s in signals if s in text_lower]
+                if matches:
+                    intent_scores[intent] = len(matches)
+                    matched_signals[intent] = matches
 
             if intent_scores:
                 # Get highest scoring intent
@@ -130,6 +150,11 @@ Only respond with valid JSON, no explanation."""
                 if max_score >= 1:
                     keyword.intent = best_intent
                     keyword.intent_confidence = min(0.9, 0.6 + (max_score * 0.1))
+                    keyword.intent_signals = matched_signals.get(best_intent, [])
+                    keyword.intent_explanation = self._generate_explanation(
+                        keyword, best_intent, keyword.intent_confidence, 
+                        keyword.intent_signals, method="rule_based"
+                    )
                     classified.append(keyword)
                 else:
                     ambiguous.append(keyword)
@@ -138,8 +163,20 @@ Only respond with valid JSON, no explanation."""
 
         return classified, ambiguous
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        retry=retry_if_exception_type((ConnectionError, TimeoutError)),
+    )
     async def _llm_classify(self, keywords: list[Keyword]) -> list[Keyword]:
-        """Use LLM to classify ambiguous keywords."""
+        """
+        Use LLM to classify ambiguous keywords.
+        
+        Retry-safe with exponential backoff:
+        - 3 attempts max
+        - Waits 1s, 2s, 4s between retries
+        - Only retries on connection/timeout errors
+        """
         log = logger.bind(keyword_count=len(keywords))
         log.debug("Using LLM for intent classification")
 
@@ -162,6 +199,10 @@ Only respond with valid JSON, no explanation."""
                     intent_str = result.get("intent", "informational").lower()
                     keyword.intent = SearchIntent(intent_str)
                     keyword.intent_confidence = float(result.get("confidence", 0.7))
+                    keyword.intent_explanation = self._generate_explanation(
+                        keyword, keyword.intent, keyword.intent_confidence,
+                        signals=[], method="llm"
+                    )
 
         except (json.JSONDecodeError, ValueError) as e:
             log.warning("Failed to parse LLM response", error=str(e))
@@ -170,6 +211,10 @@ Only respond with valid JSON, no explanation."""
                 if kw.intent is None:
                     kw.intent = SearchIntent.INFORMATIONAL
                     kw.intent_confidence = 0.5
+                    kw.intent_explanation = self._generate_explanation(
+                        kw, kw.intent, kw.intent_confidence,
+                        signals=[], method="fallback"
+                    )
 
         return keywords
 
@@ -182,4 +227,49 @@ Only respond with valid JSON, no explanation."""
         # Default to informational
         keyword.intent = SearchIntent.INFORMATIONAL
         keyword.intent_confidence = 0.5
+        keyword.intent_explanation = self._generate_explanation(
+            keyword, keyword.intent, keyword.intent_confidence,
+            signals=[], method="default"
+        )
         return keyword
+
+    def _generate_explanation(
+        self,
+        keyword: Keyword,
+        intent: SearchIntent,
+        confidence: float,
+        signals: list[str],
+        method: str = "rule_based",
+    ) -> str:
+        """
+        Generate human-readable explanation for intent classification.
+        
+        This ensures explainable AI - no black box decisions.
+        
+        Examples:
+        - "Informational intent detected via signals: 'how to', 'tutorial'. Confidence: 85% (rule_based)"
+        - "Commercial intent detected by LLM analysis. Confidence: 70% (llm)"
+        """
+        intent_descriptions = {
+            SearchIntent.INFORMATIONAL: "User is seeking information or knowledge",
+            SearchIntent.COMMERCIAL: "User is researching/comparing options before decision",
+            SearchIntent.TRANSACTIONAL: "User has high purchase or action intent",
+            SearchIntent.NAVIGATIONAL: "User is looking for a specific website or page",
+        }
+        
+        base_description = intent_descriptions.get(intent, "Unknown intent")
+        
+        if signals:
+            signals_str = ", ".join(f"'{s}'" for s in signals[:3])
+            return (
+                f"{intent.value.title()} intent detected via signals: {signals_str}. "
+                f"{base_description}. Confidence: {confidence:.0%} ({method})"
+            )
+        
+        if method == "llm":
+            return f"{intent.value.title()} intent detected by LLM analysis. {base_description}. Confidence: {confidence:.0%}"
+        
+        if method == "fallback":
+            return f"Defaulted to {intent.value} intent (no clear signals). {base_description}. Confidence: {confidence:.0%}"
+        
+        return f"{intent.value.title()} intent. {base_description}. Confidence: {confidence:.0%} ({method})"

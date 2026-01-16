@@ -31,10 +31,13 @@ class Keyword:
 
     id: UUID = field(default_factory=uuid4)
     text: str = ""
+    normalized_text: str = ""  # Lowercase, trimmed version
     search_volume: int = 0
     difficulty: KeywordDifficulty = KeywordDifficulty.MEDIUM
     intent: SearchIntent | None = None
     intent_confidence: float = 0.0
+    intent_explanation: str = ""  # Explainable AI - why this intent
+    intent_signals: list[str] = field(default_factory=list)  # Matched signals
     cpc: float = 0.0
     trend: list[int] = field(default_factory=list)  # 12-month trend
     embedding: list[float] = field(default_factory=list)

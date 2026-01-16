@@ -97,8 +97,13 @@ class KeywordNormalizer:
                 )
                 continue
 
-            # Update keyword text and track
+            # Update keyword text and normalized_text field
+            original_text = keyword.text
             keyword.text = normalized_text
+            keyword.normalized_text = normalized_text  # Store normalized version
+            if not keyword.metadata.get("original_text"):
+                keyword.metadata["original_text"] = original_text
+            
             seen[normalized_text] = keyword
             valid_keywords.append(keyword)
 

@@ -1,4 +1,4 @@
-"""Domain models exports."""
+"""Domain models and DTOs exports."""
 
 from src.domain.models import (
     Keyword,
@@ -9,11 +9,32 @@ from src.domain.models import (
     SearchIntent,
 )
 
+from src.domain.dto import (
+    TaskStatus,
+    IntentType,
+    KeywordTaskInput,
+    KeywordIntentResult,
+    KeywordOutput,
+    ClusterOutput,
+    KeywordClusterOutput,
+    create_intent_explanation,
+)
+
 __all__ = [
+    # Models
     "Keyword",
     "KeywordCluster",
     "KeywordAnalysisTask",
     "KeywordAnalysisResult",
     "SearchIntent",
     "KeywordDifficulty",
+    # DTOs
+    "TaskStatus",
+    "IntentType",
+    "KeywordTaskInput",
+    "KeywordIntentResult",
+    "KeywordOutput",
+    "ClusterOutput",
+    "KeywordClusterOutput",
+    "create_intent_explanation",
 ]
