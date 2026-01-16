@@ -2,6 +2,7 @@
 
 from src.services.intent_classifier import KeywordIntentClassifier
 from src.services.cluster_service import KeywordClusterService, ClusteringConfig
+from src.services.normalizer import KeywordNormalizer, SimilarityDeduplicator
 from src.services.embedding_service import (
     EmbeddingService,
     EmbeddingProvider,
@@ -21,6 +22,8 @@ __all__ = [
     "KeywordIntentClassifier",
     "KeywordClusterService",
     "ClusteringConfig",
+    "KeywordNormalizer",
+    "SimilarityDeduplicator",
     "EmbeddingService",
     "EmbeddingProvider",
     "OpenAIEmbeddingProvider",
@@ -32,3 +35,4 @@ __all__ = [
     "MockLLMClient",
     "create_llm_client",
 ]
+

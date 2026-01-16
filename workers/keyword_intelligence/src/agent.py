@@ -3,6 +3,21 @@ Keyword Intelligence Agent - Main orchestration service.
 
 This agent coordinates keyword analysis, intent classification, 
 embedding generation, and semantic clustering.
+
+Responsibilities (per AI_SEO_TOOL_PROMPT_BOOK.md):
+1. Accept keyword analysis task payload
+2. Normalize and deduplicate keywords
+3. Classify search intent (informational, commercial, transactional)
+4. Generate embeddings for keywords
+5. Cluster keywords by semantic similarity
+6. Persist results to PostgreSQL
+7. Return structured result to Orchestrator
+
+Constraints:
+- Max execution time: 2 minutes
+- Idempotent processing
+- Deterministic clustering
+- Clear logging per step
 """
 
 import time
@@ -22,11 +37,15 @@ from src.domain.models import (
 from src.services.intent_classifier import KeywordIntentClassifier
 from src.services.cluster_service import KeywordClusterService
 from src.services.embedding_service import EmbeddingService
+from src.services.normalizer import KeywordNormalizer, SimilarityDeduplicator
 from src.infrastructure.vector_storage import VectorStorageAdapter
 from src.infrastructure.repository import KeywordRepository
 from src.config import Settings
 
 logger = structlog.get_logger()
+
+# Max execution time in seconds (2 minutes as per spec)
+MAX_EXECUTION_TIME = 120
 
 
 class KeywordIntelligenceAgent:
@@ -34,11 +53,11 @@ class KeywordIntelligenceAgent:
     Main agent that orchestrates keyword analysis pipeline.
     
     Pipeline:
-    1. Parse input keywords
+    1. Normalize and deduplicate keywords
     2. Generate embeddings
     3. Classify search intent
     4. Cluster by semantic similarity
-    5. Persist results
+    5. Persist results to PostgreSQL
     6. Return analysis result
     """
 
@@ -47,6 +66,8 @@ class KeywordIntelligenceAgent:
         intent_classifier: KeywordIntentClassifier,
         cluster_service: KeywordClusterService,
         embedding_service: EmbeddingService,
+        normalizer: KeywordNormalizer,
+        deduplicator: SimilarityDeduplicator,
         vector_storage: VectorStorageAdapter,
         repository: KeywordRepository,
         settings: Settings,
@@ -54,6 +75,8 @@ class KeywordIntelligenceAgent:
         self.intent_classifier = intent_classifier
         self.cluster_service = cluster_service
         self.embedding_service = embedding_service
+        self.normalizer = normalizer
+        self.deduplicator = deduplicator
         self.vector_storage = vector_storage
         self.repository = repository
         self.settings = settings
@@ -84,34 +107,68 @@ class KeywordIntelligenceAgent:
             plan_id=str(task.plan_id),
             keyword_count=len(task.keywords),
         )
-        log.info("Starting keyword analysis")
+        log.info("=" * 50)
+        log.info("STARTING KEYWORD ANALYSIS PIPELINE")
+        log.info("=" * 50)
 
         try:
-            # Step 1: Parse keywords into domain objects
-            keywords = self._parse_keywords(task.keywords, task.options)
-            log.debug("Keywords parsed", count=len(keywords))
+            # Step 1: Normalize and deduplicate keywords
+            log.info("[Step 1/6] Normalizing and deduplicating keywords...")
+            keywords = self.normalizer.normalize_raw_keywords(task.keywords)
+            original_count = len(keywords)
+            keywords = self.deduplicator.deduplicate(keywords)
+            log.info(
+                f"[Step 1/6] Complete: {len(task.keywords)} input → {original_count} normalized → {len(keywords)} unique"
+            )
+
+            if not keywords:
+                log.warning("No valid keywords after normalization")
+                return KeywordAnalysisResult(
+                    task_id=task.id,
+                    status="completed",
+                    processing_time_ms=int((time.time() - start_time) * 1000),
+                    metadata={"note": "No valid keywords after normalization"},
+                )
+
+            # Check execution time
+            self._check_timeout(start_time, "after normalization")
 
             # Step 2: Generate embeddings
+            log.info("[Step 2/6] Generating embeddings...")
             keywords = await self.embedding_service.generate_embeddings(keywords)
-            log.debug("Embeddings generated")
+            embedded_count = sum(1 for kw in keywords if kw.embedding)
+            log.info(f"[Step 2/6] Complete: {embedded_count}/{len(keywords)} keywords embedded")
+
+            self._check_timeout(start_time, "after embeddings")
 
             # Step 3: Classify search intent
+            log.info("[Step 3/6] Classifying search intent...")
             keywords = await self.intent_classifier.classify_batch(keywords)
-            log.debug("Intent classified")
+            classified_count = sum(1 for kw in keywords if kw.intent)
+            log.info(f"[Step 3/6] Complete: {classified_count}/{len(keywords)} keywords classified")
+
+            self._check_timeout(start_time, "after intent classification")
 
             # Step 4: Cluster keywords
+            log.info("[Step 4/6] Clustering keywords by semantic similarity...")
             clusters = self.cluster_service.cluster_keywords(keywords)
-            log.debug("Keywords clustered", cluster_count=len(clusters))
+            log.info(f"[Step 4/6] Complete: {len(clusters)} clusters created")
 
-            # Step 5: Persist to database
+            self._check_timeout(start_time, "after clustering")
+
+            # Step 5: Persist to PostgreSQL (idempotent)
+            log.info("[Step 5/6] Persisting to PostgreSQL...")
             await self.repository.save_keywords(keywords)
             await self.repository.save_clusters(clusters)
-            log.debug("Results persisted to database")
+            log.info(f"[Step 5/6] Complete: {len(keywords)} keywords, {len(clusters)} clusters saved")
+
+            self._check_timeout(start_time, "after persistence")
 
             # Step 6: Store in vector DB
+            log.info("[Step 6/6] Storing embeddings in vector DB...")
             await self.vector_storage.upsert_keywords(keywords)
             await self.vector_storage.upsert_clusters(clusters)
-            log.debug("Embeddings stored in vector DB")
+            log.info("[Step 6/6] Complete: Embeddings stored")
 
             # Calculate metrics
             processing_time_ms = int((time.time() - start_time) * 1000)
@@ -133,13 +190,24 @@ class KeywordIntelligenceAgent:
                 },
             )
 
-            log.info(
-                "Keyword analysis completed",
-                processing_time_ms=processing_time_ms,
-                clusters=len(clusters),
-            )
+            log.info("=" * 50)
+            log.info("KEYWORD ANALYSIS COMPLETE")
+            log.info(f"  Keywords: {len(keywords)}")
+            log.info(f"  Clusters: {len(clusters)}")
+            log.info(f"  Time: {processing_time_ms}ms")
+            log.info("=" * 50)
 
             return result
+
+        except TimeoutError as e:
+            processing_time_ms = int((time.time() - start_time) * 1000)
+            log.error("Analysis timed out", error=str(e))
+            return KeywordAnalysisResult(
+                task_id=task.id,
+                status="failed",
+                processing_time_ms=processing_time_ms,
+                error=f"Timeout: {str(e)}",
+            )
 
         except Exception as e:
             processing_time_ms = int((time.time() - start_time) * 1000)
@@ -152,27 +220,14 @@ class KeywordIntelligenceAgent:
                 error=str(e),
             )
 
-    def _parse_keywords(
-        self,
-        keyword_texts: list[str],
-        options: dict[str, Any],
-    ) -> list[Keyword]:
-        """Parse raw keyword texts into Keyword objects."""
-        keywords: list[Keyword] = []
-
-        for text in keyword_texts:
-            text = text.strip()
-            if not text:
-                continue
-
-            keyword = Keyword(
-                text=text,
-                search_volume=options.get("default_volume", 0),
-                difficulty=KeywordDifficulty.MEDIUM,
+    def _check_timeout(self, start_time: float, stage: str) -> None:
+        """Check if execution has exceeded max time limit."""
+        elapsed = time.time() - start_time
+        if elapsed > MAX_EXECUTION_TIME:
+            raise TimeoutError(
+                f"Execution exceeded {MAX_EXECUTION_TIME}s limit {stage} "
+                f"(elapsed: {elapsed:.1f}s)"
             )
-            keywords.append(keyword)
-
-        return keywords
 
     def _calculate_intent_distribution(
         self,
