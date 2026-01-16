@@ -1,0 +1,70 @@
+{
+  "taskId": "69691930-33d6-4419-8125-3475829cb993",
+  "status": "completed",
+  "content": {
+    "outline": {
+      "h1": "Mock Article Title",
+      "sections": [
+        {
+          "h2": "Introduction",
+          "subsections": [],
+          "keyPoints": [
+            "Overview of the topic"
+          ]
+        },
+        {
+          "h2": "Main Content",
+          "subsections": [
+            "Subsection 1"
+          ],
+          "keyPoints": [
+            "Key point 1",
+            "Key point 2"
+          ]
+        },
+        {
+          "h2": "Conclusion",
+          "subsections": [],
+          "keyPoints": [
+            "Summary"
+          ]
+        }
+      ]
+    },
+    "markdownContent": "# Mock Article Title\n\n## Introduction\n\nThis is a mock introduction paragraph for testing purposes. It covers the basics of the topic to set the stage for readers.\n\n## Main Content\n\nHere is the main content of the article with relevant information. This section dives deeper into the subject matter and provides valuable insights.\n\n### Subsection 1\n\nDetailed information about the first subtopic. This includes specific examples and practical advice.\n\n### Subsection 2\n\nAdditional details covering related aspects. Users will find actionable tips here.\n\n## Conclusion\n\nA summary of the key points covered in this article. The reader should now have a comprehensive understanding of the topic.",
+    "wordCount": 107,
+    "seoMetadata": {
+      "metaTitle": "Mock Meta Title | SEO Tool",
+      "metaDescription": "This is a mock meta description for testing. It contains relevant keywords and is within the recommended length."
+    },
+    "faqSchema": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is the mock question?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "This is the mock answer for testing purposes."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does this work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It works by matching patterns in the prompt and returning predefined responses."
+          }
+        }
+      ]
+    }
+  },
+  "processingTimeMs": 2,
+  "metadata": {
+    "primaryKeyword": "best credit cards 2024",
+    "targetLanguage": "en-US",
+    "contentType": "article",
+    "generatedAt": "2026-01-16T10:33:48.629Z"
+  }
+}

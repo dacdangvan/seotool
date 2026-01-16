@@ -1,0 +1,70 @@
+{
+  "taskId": "49a0c869-eb42-4b6b-aee2-5fed11463ae1",
+  "status": "completed",
+  "content": {
+    "outline": {
+      "h1": "Mock Article Title",
+      "sections": [
+        {
+          "h2": "Introduction",
+          "subsections": [],
+          "keyPoints": [
+            "Overview of the topic"
+          ]
+        },
+        {
+          "h2": "Main Content",
+          "subsections": [
+            "Subsection 1"
+          ],
+          "keyPoints": [
+            "Key point 1",
+            "Key point 2"
+          ]
+        },
+        {
+          "h2": "Conclusion",
+          "subsections": [],
+          "keyPoints": [
+            "Summary"
+          ]
+        }
+      ]
+    },
+    "markdownContent": "{\"title\":\"Mock Article Title\",\"sections\":[{\"heading\":\"Introduction\",\"keyPoints\":[\"Overview of the topic\"],\"subsections\":[]},{\"heading\":\"Main Content\",\"keyPoints\":[\"Key point 1\",\"Key point 2\"],\"subsections\":[{\"heading\":\"Subsection 1\",\"keyPoints\":[\"Detail 1\"]}]},{\"heading\":\"Conclusion\",\"keyPoints\":[\"Summary\"],\"subsections\":[]}]}",
+    "wordCount": 13,
+    "seoMetadata": {
+      "metaTitle": "Mock Meta Title | SEO Tool",
+      "metaDescription": "This is a mock meta description for testing. It contains relevant keywords and is within the recommended length."
+    },
+    "faqSchema": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is the mock question?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "This is the mock answer for testing purposes."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does this work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It works by matching patterns in the prompt and returning predefined responses."
+          }
+        }
+      ]
+    }
+  },
+  "processingTimeMs": 2,
+  "metadata": {
+    "primaryKeyword": "best credit cards 2024",
+    "targetLanguage": "en-US",
+    "contentType": "article",
+    "generatedAt": "2026-01-16T10:30:48.622Z"
+  }
+}
