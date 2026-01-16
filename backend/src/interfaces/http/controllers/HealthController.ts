@@ -3,9 +3,9 @@
  */
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { checkConnection } from '../../../infrastructure/database/connection.js';
-import { AgentDispatcher } from '../../../application/services/AgentDispatcher.js';
-import { Logger } from '../../../shared/Logger.js';
+import { checkConnection } from '../../../infrastructure/database/connection';
+import { AgentDispatcher } from '../../../application/services/AgentDispatcher';
+import { Logger } from '../../../shared/Logger';
 
 export class HealthController {
   private readonly logger: Logger;

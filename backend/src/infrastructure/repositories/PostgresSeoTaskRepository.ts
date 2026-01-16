@@ -11,10 +11,10 @@ import {
   TaskStatus,
   TaskPriority,
   TaskType,
-} from '../../domain/entities/SeoTask.js';
-import { ISeoTaskRepository } from '../../domain/repositories/ISeoTaskRepository.js';
-import { Logger } from '../../shared/Logger.js';
-import { DatabaseError } from '../../shared/errors.js';
+} from '../../domain/entities/SeoTask';
+import { ISeoTaskRepository } from '../../domain/repositories/ISeoTaskRepository';
+import { Logger } from '../../shared/Logger';
+import { DatabaseError } from '../../shared/errors';
 
 interface TaskRow {
   id: string;

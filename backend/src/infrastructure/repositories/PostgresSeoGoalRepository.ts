@@ -12,10 +12,10 @@ import {
   GoalPriority,
   GoalMetrics,
   GoalType,
-} from '../../domain/entities/SeoGoal.js';
-import { ISeoGoalRepository } from '../../domain/repositories/ISeoGoalRepository.js';
-import { Logger } from '../../shared/Logger.js';
-import { DatabaseError } from '../../shared/errors.js';
+} from '../../domain/entities/SeoGoal';
+import { ISeoGoalRepository } from '../../domain/repositories/ISeoGoalRepository';
+import { Logger } from '../../shared/Logger';
+import { DatabaseError } from '../../shared/errors';
 
 interface GoalRow {
   id: string;

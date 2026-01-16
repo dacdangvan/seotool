@@ -8,7 +8,7 @@
  * - Admin API
  */
 
-import { GoalType, TaskType, TaskPriority } from '../domain/index.js';
+import { GoalType, TaskType, TaskPriority } from '../domain/index';
 
 export interface TaskTemplate {
   type: TaskType;

@@ -3,9 +3,9 @@
  * Implement based on AI_SEO_TOOL_PROMPT_BOOK.md - Module 1
  */
 
-import { SeoTask, TaskType, TaskStatus } from '../../domain/index.js';
-import { Logger } from '../../shared/Logger.js';
-import { IAgent, AgentResult } from './AgentDispatcher.js';
+import { SeoTask, TaskType, TaskStatus } from '../../domain/index';
+import { Logger } from '../../shared/Logger';
+import { IAgent, AgentResult } from './AgentDispatcher';
 
 export interface KeywordAnalysisRequest {
   task_id: string;

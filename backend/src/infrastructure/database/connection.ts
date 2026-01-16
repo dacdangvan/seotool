@@ -4,7 +4,7 @@
  */
 
 import { Pool, PoolConfig } from 'pg';
-import { Logger } from '../../shared/Logger.js';
+import { Logger } from '../../shared/Logger';
 
 let pool: Pool | null = null;
 

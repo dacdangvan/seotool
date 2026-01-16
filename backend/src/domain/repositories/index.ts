@@ -2,6 +2,6 @@
  * Domain Repositories - Barrel Export
  */
 
-export * from './ISeoGoalRepository.js';
-export * from './ISeoPlanRepository.js';
-export * from './ISeoTaskRepository.js';
+export * from './ISeoGoalRepository';
+export * from './ISeoPlanRepository';
+export * from './ISeoTaskRepository';

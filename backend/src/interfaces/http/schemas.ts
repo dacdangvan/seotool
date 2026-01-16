@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { GoalType, GoalPriority, GoalStatus } from '../../domain/entities/SeoGoal.js';
+import { GoalType, GoalPriority, GoalStatus } from '../../domain/entities/SeoGoal';
 
 // Goal Metrics Schema
 export const GoalMetricsSchema = z.object({

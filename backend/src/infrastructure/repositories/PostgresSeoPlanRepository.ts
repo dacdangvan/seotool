@@ -10,11 +10,11 @@ import {
   CreateSeoPlanInput,
   PlanStatus,
   PlanMetadata,
-} from '../../domain/entities/SeoPlan.js';
-import { SeoTask, TaskStatus } from '../../domain/entities/SeoTask.js';
-import { ISeoPlanRepository } from '../../domain/repositories/ISeoPlanRepository.js';
-import { Logger } from '../../shared/Logger.js';
-import { DatabaseError } from '../../shared/errors.js';
+} from '../../domain/entities/SeoPlan';
+import { SeoTask, TaskStatus } from '../../domain/entities/SeoTask';
+import { ISeoPlanRepository } from '../../domain/repositories/ISeoPlanRepository';
+import { Logger } from '../../shared/Logger';
+import { DatabaseError } from '../../shared/errors';
 
 interface PlanRow {
   id: string;

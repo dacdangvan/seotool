@@ -6,10 +6,10 @@
  */
 
 import 'dotenv/config';
-import { createContainer } from './container.js';
-import { createServer } from './server.js';
-import { closePool } from './infrastructure/database/connection.js';
-import { Logger } from './shared/Logger.js';
+import { createContainer } from './container';
+import { createServer } from './server';
+import { closePool } from './infrastructure/database/connection';
+import { Logger } from './shared/Logger';
 
 const logger = new Logger('Main');
 

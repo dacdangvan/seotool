@@ -9,9 +9,9 @@ import {
   TaskOutput,
   SeoPlan,
   PlanStatus,
-} from '../../domain/index.js';
-import { ISeoTaskRepository, ISeoPlanRepository } from '../../domain/repositories/index.js';
-import { Logger } from '../../shared/Logger.js';
+} from '../../domain/index';
+import { ISeoTaskRepository, ISeoPlanRepository } from '../../domain/repositories/index';
+import { Logger } from '../../shared/Logger';
 
 export interface TaskStatusUpdate {
   taskId: string;

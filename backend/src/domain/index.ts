@@ -2,6 +2,6 @@
  * Domain Layer - Barrel Export
  */
 
-export * from './entities/index.js';
-export * from './repositories/index.js';
-export * from './interfaces/index.js';
+export * from './entities/index';
+export * from './repositories/index';
+export * from './interfaces/index';

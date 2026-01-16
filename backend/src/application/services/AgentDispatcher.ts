@@ -6,8 +6,8 @@
  * Real implementation will use BullMQ to dispatch tasks to agent workers.
  */
 
-import { SeoTask, TaskType, TaskStatus } from '../../domain/index.js';
-import { Logger } from '../../shared/Logger.js';
+import { SeoTask, TaskType, TaskStatus } from '../../domain/index';
+import { Logger } from '../../shared/Logger';
 
 /**
  * Agent contract interface

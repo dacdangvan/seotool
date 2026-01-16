@@ -8,10 +8,10 @@ import {
   CreateSeoGoalInput,
   GoalStatus,
   GoalPriority,
-} from '../../domain/index.js';
-import { ISeoGoalRepository } from '../../domain/repositories/index.js';
-import { TaskPlannerService } from './TaskPlannerService.js';
-import { Logger } from '../../shared/Logger.js';
+} from '../../domain/index';
+import { ISeoGoalRepository } from '../../domain/repositories/index';
+import { TaskPlannerService } from './TaskPlannerService';
+import { Logger } from '../../shared/Logger';
 
 export class SeoGoalService {
   private readonly logger: Logger;

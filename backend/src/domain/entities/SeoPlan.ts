@@ -3,7 +3,7 @@
  * Implement based on AI_SEO_TOOL_PROMPT_BOOK.md - Module 0
  */
 
-import type { SeoTask } from './SeoTask.js';
+import type { SeoTask } from './SeoTask';
 
 export enum PlanStatus {
   DRAFT = 'DRAFT',

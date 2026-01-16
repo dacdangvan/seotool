@@ -19,9 +19,9 @@ import {
   TaskStatus,
   TaskPriority,
   CreateSeoTaskInput,
-} from '../../domain/index.js';
-import { ISeoPlanRepository, ISeoTaskRepository } from '../../domain/repositories/index.js';
-import { Logger } from '../../shared/Logger.js';
+} from '../../domain/index';
+import { ISeoPlanRepository, ISeoTaskRepository } from '../../domain/repositories/index';
+import { Logger } from '../../shared/Logger';
 
 interface TaskTemplate {
   type: TaskType;

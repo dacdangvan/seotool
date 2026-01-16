@@ -2,5 +2,5 @@
  * Infrastructure Layer - Barrel Export
  */
 
-export * from './database/connection.js';
-export * from './repositories/index.js';
+export * from './database/connection';
+export * from './repositories/index';

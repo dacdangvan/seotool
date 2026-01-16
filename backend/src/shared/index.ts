@@ -2,5 +2,5 @@
  * Shared Utilities - Barrel Export
  */
 
-export * from './Logger.js';
-export * from './errors.js';
+export * from './Logger';
+export * from './errors';

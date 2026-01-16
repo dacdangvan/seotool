@@ -2,6 +2,6 @@
  * Infrastructure Repositories - Barrel Export
  */
 
-export * from './PostgresSeoGoalRepository.js';
-export * from './PostgresSeoPlanRepository.js';
-export * from './PostgresSeoTaskRepository.js';
+export * from './PostgresSeoGoalRepository';
+export * from './PostgresSeoPlanRepository';
+export * from './PostgresSeoTaskRepository';

@@ -2,4 +2,4 @@
  * Domain Events - Barrel Export
  */
 
-export * from './DomainEvents.js';
+export * from './DomainEvents';

@@ -2,6 +2,6 @@
  * Domain Entities - Barrel Export
  */
 
-export * from './SeoGoal.js';
-export * from './SeoPlan.js';
-export * from './SeoTask.js';
+export * from './SeoGoal';
+export * from './SeoPlan';
+export * from './SeoTask';

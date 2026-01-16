@@ -6,16 +6,16 @@
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { SeoGoalService } from '../../../application/services/SeoGoalService.js';
+import { SeoGoalService } from '../../../application/services/SeoGoalService';
 import {
   CreateGoalRequestSchema,
   CreateGoalRequest,
   ListGoalsQuerySchema,
   ListGoalsQuery,
-} from '../schemas.js';
-import { Logger } from '../../../shared/Logger.js';
-import { AppError, NotFoundError, ValidationError } from '../../../shared/errors.js';
-import { SeoGoal } from '../../../domain/entities/SeoGoal.js';
+} from '../schemas';
+import { Logger } from '../../../shared/Logger';
+import { AppError, NotFoundError, ValidationError } from '../../../shared/errors';
+import { SeoGoal } from '../../../domain/entities/SeoGoal';
 
 export class GoalsController {
   private readonly logger: Logger;

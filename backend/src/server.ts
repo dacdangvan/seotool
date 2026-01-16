@@ -7,8 +7,8 @@ import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
-import { Container } from './container.js';
-import { Logger } from './shared/Logger.js';
+import { Container } from './container';
+import { Logger } from './shared/Logger';
 
 export async function createServer(container: Container): Promise<FastifyInstance> {
   const logger = new Logger('Server');

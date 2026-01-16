@@ -6,12 +6,12 @@
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { SeoPlanService } from '../../../application/services/SeoPlanService.js';
-import { PlanParamsSchema } from '../schemas.js';
-import { Logger } from '../../../shared/Logger.js';
-import { AppError, NotFoundError, ValidationError } from '../../../shared/errors.js';
-import { SeoPlan } from '../../../domain/entities/SeoPlan.js';
-import { SeoTask } from '../../../domain/entities/SeoTask.js';
+import { SeoPlanService } from '../../../application/services/SeoPlanService';
+import { PlanParamsSchema } from '../schemas';
+import { Logger } from '../../../shared/Logger';
+import { AppError, NotFoundError, ValidationError } from '../../../shared/errors';
+import { SeoPlan } from '../../../domain/entities/SeoPlan';
+import { SeoTask } from '../../../domain/entities/SeoTask';
 
 export class PlansController {
   private readonly logger: Logger;

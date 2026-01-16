@@ -3,7 +3,7 @@
  * Implement based on AI_SEO_TOOL_PROMPT_BOOK.md - Clean Architecture
  */
 
-import { SeoGoal, CreateSeoGoalInput } from '../entities/SeoGoal.js';
+import { SeoGoal, CreateSeoGoalInput } from '../entities/SeoGoal';
 
 export interface ISeoGoalRepository {
   create(input: CreateSeoGoalInput): Promise<SeoGoal>;

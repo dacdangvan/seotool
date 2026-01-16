@@ -3,10 +3,10 @@
  * Implement based on AI_SEO_TOOL_PROMPT_BOOK.md - Module 0
  */
 
-import { SeoPlan, PlanStatus } from '../../domain/index.js';
-import { ISeoPlanRepository } from '../../domain/repositories/index.js';
-import { TaskPlannerService } from './TaskPlannerService.js';
-import { Logger } from '../../shared/Logger.js';
+import { SeoPlan, PlanStatus } from '../../domain/index';
+import { ISeoPlanRepository } from '../../domain/repositories/index';
+import { TaskPlannerService } from './TaskPlannerService';
+import { Logger } from '../../shared/Logger';
 
 export class SeoPlanService {
   private readonly logger: Logger;

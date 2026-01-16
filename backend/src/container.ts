@@ -6,14 +6,14 @@
  */
 
 import { Pool } from 'pg';
-import { getPool } from './infrastructure/database/connection.js';
+import { getPool } from './infrastructure/database/connection';
 
 // Repositories
 import {
   PostgresSeoGoalRepository,
   PostgresSeoPlanRepository,
   PostgresSeoTaskRepository,
-} from './infrastructure/repositories/index.js';
+} from './infrastructure/repositories/index';
 
 // Services
 import {
@@ -22,16 +22,16 @@ import {
   TaskStatusTracker,
   SeoGoalService,
   SeoPlanService,
-} from './application/services/index.js';
+} from './application/services/index';
 
 // Controllers
 import {
   GoalsController,
   PlansController,
   HealthController,
-} from './interfaces/http/controllers/index.js';
+} from './interfaces/http/controllers/index';
 
-import { Logger } from './shared/Logger.js';
+import { Logger } from './shared/Logger';
 
 export interface Container {
   // Infrastructure

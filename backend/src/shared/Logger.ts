@@ -60,7 +60,7 @@ export class Logger {
    */
   child(bindings: Record<string, unknown>): Logger {
     const childLogger = new Logger(this.context);
-    (childLogger as { logger: pino.Logger }).logger = this.logger.child(bindings);
+    (childLogger as unknown as { logger: pino.Logger }).logger = this.logger.child(bindings);
     return childLogger;
   }
 }

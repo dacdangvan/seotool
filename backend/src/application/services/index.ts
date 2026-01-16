@@ -2,9 +2,9 @@
  * Application Services - Barrel Export
  */
 
-export * from './TaskPlannerService.js';
-export * from './AgentDispatcher.js';
-export * from './TaskStatusTracker.js';
-export * from './SeoGoalService.js';
-export * from './SeoPlanService.js';
-export * from './KeywordIntelligenceAgent.js';
+export * from './TaskPlannerService';
+export * from './AgentDispatcher';
+export * from './TaskStatusTracker';
+export * from './SeoGoalService';
+export * from './SeoPlanService';
+export * from './KeywordIntelligenceAgent';

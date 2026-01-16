@@ -6,7 +6,7 @@
  * Placed in domain layer as it represents core business contracts.
  */
 
-import { TaskType } from '../entities/SeoTask.js';
+import { TaskType } from '../entities/SeoTask';
 
 /**
  * Result returned by an agent after task execution
