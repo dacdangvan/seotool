@@ -16,11 +16,15 @@ import {
   ManagerCopilot,
 } from '@/components/dashboard';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
+import { Sidebar } from '@/components/Sidebar';
+import { RoleGuard } from '@/components/RoleGuard';
+import { useProject } from '@/context/ProjectContext';
 import { fetchDashboardData } from '@/lib/api';
 import { formatRelativeTime } from '@/lib/utils';
 import type { DashboardData } from '@/types/dashboard';
 
-export default function DashboardPage() {
+function DashboardContent() {
+  const { currentProject } = useProject();
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -48,7 +52,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentProject]);
 
   const handleRefresh = () => {
     loadData(true);
@@ -57,42 +61,49 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Sidebar />
+        <main className="ml-64 p-8">
           <div className="mb-8">
             <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2" />
             <div className="h-4 w-64 bg-gray-200 rounded animate-pulse" />
           </div>
           <DashboardSkeleton />
-        </div>
+        </main>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            {error || 'Something went wrong'}
-          </h2>
-          <button
-            onClick={() => loadData()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <Sidebar />
+        <main className="ml-64 flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              {error || 'Something went wrong'}
+            </h2>
+            <button
+              onClick={() => loadData()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        </main>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Sidebar />
+      <main className="ml-64 p-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">SEO Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {currentProject ? currentProject.name : 'SEO Dashboard'}
+            </h1>
             <p className="text-gray-500 mt-1">Overview of your SEO performance</p>
           </div>
           
@@ -137,7 +148,15 @@ export default function DashboardPage() {
         <footer className="mt-12 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
           <p>AI SEO Tool v0.7 • Manager Dashboard</p>
         </footer>
-      </div>
+      </main>
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <RoleGuard requiredPermissions={['dashboard:view']}>
+      <DashboardContent />
+    </RoleGuard>
   );
 }
