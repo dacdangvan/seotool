@@ -382,4 +382,142 @@ Focus on accuracy and interpretability.
 
 ---
 
+## 11. AUTONOMOUS AGENT VERSIONS
+
+### v1.0 – Autonomous SEO Agent Core
+**Location:** `backend/src/autonomous_agent/`  
+**Status:** ✅ Implemented
+
+Core autonomous execution framework with:
+- SEOAction model with risk levels (SAFE, LOW, MEDIUM, HIGH, CRITICAL)
+- Multi-agent architecture (SiteAuditAgent, ContentAnalysisAgent, TechnicalSEOAgent, StrategyAgent)
+- SEOActionExecutor for safe action execution
+- HumanApprovalService for gated operations
+
+### v1.1 – Auto-Execute Low-Risk Actions
+**Location:** `backend/src/autonomous_agent/`  
+**Status:** ✅ Implemented
+
+Automatic execution for low-risk operations:
+- RiskAssessmentEngine with multi-factor scoring
+- AutoExecutionPolicyEngine with configurable thresholds
+- Reversibility tracking for rollback capability
+- AuditLogService for compliance
+
+### v1.2 – Multi-Agent Debate Protocol
+**Location:** `backend/src/autonomous_agent/`  
+**Status:** ✅ Implemented
+
+Consensus-based decision making:
+- DebateOrchestrator coordinates multi-agent discussions
+- ArgumentEvaluator scores and ranks proposals
+- ConsensusBuilder aggregates positions
+- Structured debate with rounds and evidence requirements
+
+### v1.3 – Confidence-Weighted Auto-Execution
+**Location:** `backend/src/autonomous_agent_v1_3/`  
+**Status:** ✅ Implemented (Tag: `v1.3.1-confidence-scoring-mvp`)
+
+Dynamic execution modes based on confidence scoring:
+- ConfidenceEngine calculates multi-factor confidence scores
+- ExecutionModeResolver selects AUTO/ASSISTED/MANUAL modes
+- PartialExecutionController handles mixed-confidence batches
+- ConfidenceCalibrator adjusts thresholds based on history
+- ConfidenceAuditLogger maintains audit trail
+
+**Safety Review:** Score 6.4/10 – Requires Priority 1 fixes before production.
+
+### v1.4 – Brand Style Learning & Guardrail
+**Location:** `backend/src/brand_guardrail/`  
+**Status:** ✅ Implemented (MVP)
+
+Brand style protection for autonomous SEO execution:
+
+**Architecture:**
+```
+brand_guardrail/
+├── models.ts                    # Type definitions
+├── brand_style_learner.ts       # Learn style from content
+├── brand_profile_store.ts       # Store/retrieve profiles
+├── brand_compliance_checker.ts  # Check content compliance
+├── violation_classifier.ts      # Classify violation severity
+├── drift_monitor.ts             # Monitor style drift
+├── index.ts                     # Module exports
+└── simulation_runner.ts         # Local testing
+```
+
+**Key Components:**
+
+1. **BrandStyleLearner** – Extracts style patterns from approved content
+   - Tone detection (professional, friendly, authoritative, etc.)
+   - Formality analysis
+   - Vocabulary preferences
+   - CTA patterns
+   - Structure patterns (sentence length, etc.)
+
+2. **BrandProfileStore** – Persists brand profiles
+   - Version history for rollback
+   - Profile comparison
+   - In-memory and PostgreSQL implementations
+
+3. **BrandComplianceChecker** – Validates content against profile
+   - Tone compliance checks
+   - Vocabulary checks (avoided terms, competitor mentions)
+   - Structure checks (sentence length, readability)
+   - CTA pattern checks
+   - Prohibited pattern detection
+
+4. **ViolationClassifier** – Determines response severity
+   - BLOCKING: Must halt execution
+   - WARNING: Allow with logged warning
+   - INFO: Track for analytics only
+   - Escalation/downgrade logic based on context
+
+5. **BrandDriftMonitor** – Tracks consistency over time
+   - Time-series drift measurement
+   - Trend detection (improving/stable/degrading)
+   - Alert generation
+   - Recommendations
+
+**Violation Types:**
+- TONE_MISMATCH, FORMALITY_DEVIATION
+- PROHIBITED_PHRASE, COMPETITOR_MENTION, AVOIDED_VOCABULARY
+- KEYWORD_STUFFING, OVER_PROMOTIONAL
+- SENTENCE_LENGTH, READABILITY
+- CTA_OVERUSE, CTA_STYLE
+
+**Design Principles:**
+- Deterministic checks (same content → same result)
+- Explainable violations (pinpoint location & reason)
+- No auto-rewriting (suggest only, never apply)
+- Configurable thresholds
+
+**Integration Points:**
+- Pre-execution check (before v1.1-v1.3 auto-execution)
+- Post-execution monitoring (for drift tracking)
+- Manual review workflow (for blocked content)
+
+**Usage:**
+```typescript
+import { createBrandGuardrailSystem } from './brand_guardrail';
+
+const system = createBrandGuardrailSystem();
+
+// Learn from approved content
+system.learner.addDocuments(approvedContent);
+const profile = system.learner.learn(projectId, 'Brand Profile');
+await system.store.create(profile);
+
+// Check new content
+const result = system.checker.check(newContent, profile);
+if (!result.canProceed) {
+  // Handle blocking violations
+}
+
+// Monitor drift
+const measurement = system.driftMonitor.measureDrift(content, profile);
+```
+
+---
+
 # END OF FILE
