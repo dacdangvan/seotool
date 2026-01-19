@@ -11,6 +11,14 @@
  * - Immutable audit trail
  * - Symmetric score mapping
  * 
+ * NEW in v1.3 (Confidence-Weighted Auto-Execution):
+ * ✅ Confidence scoring engine (0.0 - 1.0)
+ * ✅ Three execution modes: NO_AUTO (< 0.60), PARTIAL (0.60-0.80), FULL (≥ 0.80)
+ * ✅ Five confidence factors: data freshness, consensus, history, scope, policy
+ * ✅ Partial execution controller (subset execution for PARTIAL mode)
+ * ✅ Rule-based adaptive calibration (no black-box ML)
+ * ✅ Deterministic, explainable scoring
+ * 
  * Addresses v1.2 Governance Review findings:
  * ✅ Risk agent veto power (can't be outvoted on HIGH-risk)
  * ✅ Quorum requirement (2/3 agents minimum)
@@ -168,3 +176,114 @@ export {
   GovernanceOrchestrator,
   createGovernanceOrchestrator,
 } from './governance_orchestrator';
+
+// ============================================================================
+// V1.3 CONFIDENCE-WEIGHTED AUTO-EXECUTION (NEW)
+// ============================================================================
+
+// Models & Types for Confidence-Weighted Execution
+export {
+  // Core Enums
+  ExecutionMode,
+  ActionOutcome,
+  
+  // Confidence Scoring
+  ConfidenceScore,
+  ConfidenceFactors,
+  ConfidenceWeights,
+  ConfidenceBreakdown,
+  DEFAULT_CONFIDENCE_WEIGHTS,
+  
+  // Execution Mode Resolution
+  ExecutionThresholds,
+  ExecutionModeResult,
+  DEFAULT_EXECUTION_THRESHOLDS,
+  
+  // Partial Execution
+  PartialExecutionConstraints,
+  PartialExecutionResult,
+  ExecutedScope,
+  RemainingScope,
+  ManualApprovalItem,
+  
+  // Data Quality
+  DataQualityInput,
+  DataQualityResult,
+  
+  // Consensus
+  ConsensusInput,
+  ConsensusResult,
+  
+  // Historical
+  HistoricalAction,
+  HistoricalInput,
+  HistoricalResult,
+  
+  // Scope
+  ScopeInput,
+  ScopeResult,
+  
+  // Safety / Policy
+  SafetyInput,
+  SafetyResult,
+  PolicyMargin,
+  
+  // Calibration
+  CalibrationRule,
+  CalibrationCondition,
+  OutcomePattern,
+  CalibrationAdjustment,
+  OutcomeObservation,
+  
+  // Audit Entry
+  ConfidenceAuditEntry,
+  
+  // Configuration
+  V13ConfidenceConfig,
+  DEFAULT_V13_CONFIDENCE_CONFIG,
+} from './models_v2';
+
+// Confidence Engine - Calculates confidence scores
+export {
+  ConfidenceEngine,
+  ConfidenceEngineInput,
+  DataConfidenceEvaluator,
+  ConsensusEvaluator,
+  HistoryEvaluator,
+  ScopeEvaluator,
+  SafetyEvaluator,
+} from './confidence_engine';
+
+// Execution Mode Resolver - Determines execution mode from confidence
+export {
+  ExecutionModeResolver,
+  canAutoExecute as canAutoExecuteFromConfidence,
+  canFullAutoExecute,
+  requiresManualApproval,
+  isBlocked,
+} from './execution_mode_resolver';
+
+// Partial Execution Controller - Manages subset execution
+export {
+  PartialExecutionController,
+} from './partial_execution_controller';
+
+// Confidence Calibrator - Rule-based adaptive adjustment
+export {
+  ConfidenceCalibrator,
+} from './confidence_calibrator';
+
+// Confidence Audit Logger - Transparency logging
+export {
+  ConfidenceAuditLogger,
+  AuditLogFilter,
+  AuditLogSummary,
+} from './confidence_audit_logger';
+
+// Confidence-Weighted Orchestrator - Main entry point for v1.3
+export {
+  ConfidenceWeightedOrchestrator,
+  createConfidenceWeightedOrchestrator,
+  ExecutionDecision as ConfidenceExecutionDecision,
+  ExecutionContext,
+} from './confidence_weighted_orchestrator';
