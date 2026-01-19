@@ -55,7 +55,7 @@ function createContext(page: CrawledPage, allPages: CrawledPage[] = []): Detecto
       maxPages: 20,
       renderMode: RenderMode.HTML,
       respectRobotsTxt: true,
-      rateLimit: 1000,
+      requestDelayMs: 1000,
       includeCoreWebVitals: false,
     },
   };

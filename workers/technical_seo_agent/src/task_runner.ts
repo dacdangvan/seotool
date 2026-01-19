@@ -39,7 +39,7 @@ async function main() {
     maxPages: 10, // Lower for CLI testing
     renderMode: RenderMode.HTML,
     respectRobotsTxt: true,
-    rateLimit: 1000,
+    requestDelayMs: 1000,
     includeCoreWebVitals: true,
   };
 

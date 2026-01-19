@@ -68,7 +68,7 @@ export class AuditRunner {
       }
 
       // Phase 2: Crawl pages
-      const rateLimiter = createRateLimiter(task.rateLimit);
+      const rateLimiter = createRateLimiter(task.requestDelayMs);
       const crawler = new PageCrawler(
         {
           userAgent: this.config.defaultUserAgent,
