@@ -1,0 +1,43 @@
+{
+  "name": "technical-seo-agent",
+  "version": "0.4.0",
+  "description": "Technical SEO Agent - Website auditing and Core Web Vitals analysis",
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit",
+    "audit:run": "tsx src/task_runner.ts"
+  },
+  "dependencies": {
+    "playwright": "^1.41.0",
+    "lighthouse": "^11.4.0",
+    "chrome-launcher": "^1.1.0",
+    "robots-parser": "^3.0.1",
+    "cheerio": "^1.0.0-rc.12",
+    "p-limit": "^5.0.0",
+    "pino": "^8.17.2",
+    "pino-pretty": "^10.3.1",
+    "zod": "^3.22.4",
+    "uuid": "^9.0.1",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/uuid": "^9.0.7",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

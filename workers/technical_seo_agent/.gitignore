@@ -1,0 +1,31 @@
+# Node
+node_modules/
+dist/
+
+# Logs
+*.log
+pino-*.log
+
+# Test output
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Audit output files
+audit-result-*.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Playwright
+playwright-report/
+test-results/
