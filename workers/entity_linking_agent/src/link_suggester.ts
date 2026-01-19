@@ -1,6 +1,11 @@
 /**
  * Link Suggester
  * 
+ * v0.5.1 - SEO safety improvements:
+ * - Added anchor diversity tracking (max 30% keyword anchors)
+ * - Added link velocity control (maxNewLinksPerDeployment)
+ * - Prioritizes natural anchors over keyword-rich ones
+ * 
  * Suggests internal links based on:
  * - Topic relevance
  * - Authority flow
@@ -30,6 +35,13 @@ import { Logger } from './logger';
 // =============================================================================
 
 export class LinkSuggester {
+  // v0.5.1: Track anchor diversity
+  private anchorStats = {
+    totalAnchors: 0,
+    keywordAnchors: 0,
+    naturalAnchors: 0,
+  };
+
   constructor(
     private readonly config: Config,
     private readonly logger: Logger
@@ -37,6 +49,7 @@ export class LinkSuggester {
 
   /**
    * Generate link suggestions
+   * v0.5.1: Added link velocity control and anchor diversity
    */
   suggest(
     contents: ParsedContent[],
@@ -45,6 +58,9 @@ export class LinkSuggester {
     clusters: TopicCluster[]
   ): LinkSuggestion[] {
     this.logger.info('Generating link suggestions');
+
+    // Reset anchor stats for this run
+    this.anchorStats = { totalAnchors: 0, keywordAnchors: 0, naturalAnchors: 0 };
 
     const suggestions: LinkSuggestion[] = [];
     const contentMap = new Map(contents.map(c => [c.item.id, c]));
@@ -75,10 +91,57 @@ export class LinkSuggester {
     suggestions.push(...crossClusterSuggestions);
 
     // Deduplicate and filter by relevance
-    const filtered = this.filterAndRank(suggestions);
+    let filtered = this.filterAndRank(suggestions);
+    
+    // v0.5.1: Apply link velocity control
+    if (this.config.maxNewLinksPerDeployment > 0) {
+      const originalCount = filtered.length;
+      filtered = filtered.slice(0, this.config.maxNewLinksPerDeployment);
+      if (filtered.length < originalCount) {
+        this.logger.warn({
+          original: originalCount,
+          limited: filtered.length,
+          maxAllowed: this.config.maxNewLinksPerDeployment,
+        }, 'Link suggestions limited by velocity control');
+      }
+    }
+    
+    // v0.5.1: Log anchor diversity stats
+    this.logAnchorDiversity(filtered);
 
     this.logger.info({ suggestionCount: filtered.length }, 'Link suggestions generated');
     return filtered;
+  }
+
+  /**
+   * v0.5.1: Log and warn about anchor diversity
+   */
+  private logAnchorDiversity(suggestions: LinkSuggestion[]): void {
+    let keywordCount = 0;
+    let naturalCount = 0;
+    
+    for (const suggestion of suggestions) {
+      const topAnchor = suggestion.suggestedAnchors[0];
+      if (topAnchor) {
+        if (topAnchor.type === 'partial_match' || topAnchor.type === 'exact_match') {
+          keywordCount++;
+        } else {
+          naturalCount++;
+        }
+      }
+    }
+    
+    const total = suggestions.length;
+    const keywordRatio = total > 0 ? keywordCount / total : 0;
+    
+    if (keywordRatio > this.config.maxKeywordAnchorRatio) {
+      this.logger.warn({
+        keywordAnchors: keywordCount,
+        naturalAnchors: naturalCount,
+        ratio: (keywordRatio * 100).toFixed(1) + '%',
+        maxAllowed: (this.config.maxKeywordAnchorRatio * 100) + '%',
+      }, 'Anchor diversity warning: too many keyword-rich anchors');
+    }
   }
 
   /**
@@ -332,44 +395,24 @@ export class LinkSuggester {
 
   /**
    * Generate anchor text suggestions
+   * v0.5.1: Prioritizes natural anchors when preferNaturalAnchors is true
    */
   private generateAnchorSuggestions(target: ParsedContent): SuggestedAnchor[] {
     const anchors: SuggestedAnchor[] = [];
+    const keyword = target.item.primaryKeyword;
 
-    // Natural anchor (from title)
-    if (target.item.title) {
-      anchors.push({
-        text: target.item.title,
-        type: 'natural',
-        seoSafeScore: 0.9,
-      });
-
-      // Shorter version if title is long
-      if (target.item.title.length > 50) {
-        const shortTitle = target.item.title.split(/[:|–-]/)[0].trim();
-        anchors.push({
-          text: shortTitle,
-          type: 'natural',
-          seoSafeScore: 0.95,
-        });
-      }
+    // v0.5.1: Order based on config preference
+    if (this.config.preferNaturalAnchors) {
+      // Natural anchors first (safer for SEO)
+      this.addNaturalAnchors(anchors, target);
+      this.addPartialMatchAnchors(anchors, keyword);
+    } else {
+      // Partial match first (more keyword-focused)
+      this.addPartialMatchAnchors(anchors, keyword);
+      this.addNaturalAnchors(anchors, target);
     }
 
-    // Partial match anchor (primary keyword variation)
-    const keyword = target.item.primaryKeyword;
-    anchors.push({
-      text: `learn more about ${keyword}`,
-      type: 'partial_match',
-      seoSafeScore: 0.85,
-    });
-
-    anchors.push({
-      text: `${keyword} guide`,
-      type: 'partial_match',
-      seoSafeScore: 0.8,
-    });
-
-    // Generic safe anchors
+    // Generic safe anchors (always last)
     anchors.push({
       text: 'read more',
       type: 'natural',
@@ -382,7 +425,76 @@ export class LinkSuggester {
       seoSafeScore: 0.7,
     });
 
+    // v0.5.1: Sort by SEO safety score (highest first)
+    anchors.sort((a, b) => b.seoSafeScore - a.seoSafeScore);
+
     return anchors;
+  }
+
+  /**
+   * v0.5.1: Add natural (non-keyword) anchor suggestions
+   */
+  private addNaturalAnchors(anchors: SuggestedAnchor[], target: ParsedContent): void {
+    if (target.item.title) {
+      // Full title
+      anchors.push({
+        text: target.item.title,
+        type: 'natural',
+        seoSafeScore: 0.95,
+      });
+
+      // Shorter version if title is long
+      if (target.item.title.length > 50) {
+        const shortTitle = target.item.title.split(/[:|–-]/)[0].trim();
+        anchors.push({
+          text: shortTitle,
+          type: 'natural',
+          seoSafeScore: 0.98, // Even safer
+        });
+      }
+      
+      // v0.5.1: Add contextual phrase (without keyword)
+      anchors.push({
+        text: `this ${this.getContentTypeLabel(target)} about the topic`,
+        type: 'natural',
+        seoSafeScore: 0.92,
+      });
+    }
+  }
+
+  /**
+   * v0.5.1: Add partial-match keyword anchor suggestions
+   */
+  private addPartialMatchAnchors(anchors: SuggestedAnchor[], keyword: string): void {
+    anchors.push({
+      text: `learn more about ${keyword}`,
+      type: 'partial_match',
+      seoSafeScore: 0.75,
+    });
+
+    anchors.push({
+      text: `${keyword} guide`,
+      type: 'partial_match',
+      seoSafeScore: 0.70,
+    });
+    
+    anchors.push({
+      text: `our ${keyword} resource`,
+      type: 'partial_match',
+      seoSafeScore: 0.72,
+    });
+  }
+
+  /**
+   * v0.5.1: Get human-readable content type label
+   */
+  private getContentTypeLabel(content: ParsedContent): string {
+    const url = content.item.url.toLowerCase();
+    if (url.includes('/guide')) return 'comprehensive guide';
+    if (url.includes('/tutorial')) return 'tutorial';
+    if (url.includes('/how-to')) return 'how-to guide';
+    if (url.includes('/blog')) return 'article';
+    return 'resource';
   }
 
   /**

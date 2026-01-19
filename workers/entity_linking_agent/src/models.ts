@@ -19,6 +19,7 @@ export enum EntityType {
   LOCATION = 'location',
   EVENT = 'event',
   CONCEPT = 'concept',
+  TECHNOLOGY = 'technology',  // v0.5.1: Added for tech-related entities
 }
 
 export enum RelationType {

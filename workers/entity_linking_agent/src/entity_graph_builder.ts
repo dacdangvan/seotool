@@ -212,14 +212,19 @@ export class EntityGraphBuilder {
 
   /**
    * Calculate similarity between two topic entities
+   * v0.5.1: Added lemmatization and SEO synonym support
    */
   private calculateTopicSimilarity(a: Entity, b: Entity): number {
-    // Word overlap in names
-    const wordsA = a.normalizedName.split(' ');
-    const wordsB = b.normalizedName.split(' ');
-    const intersection = wordsA.filter(w => wordsB.includes(w));
+    // v0.5.1: Get lemmatized words
+    const wordsA = this.lemmatizeAndExpand(a.normalizedName);
+    const wordsB = this.lemmatizeAndExpand(b.normalizedName);
+    
+    // Word overlap including synonyms
+    const intersection = wordsA.filter(w => 
+      wordsB.includes(w) || this.areSynonyms(w, wordsB)
+    );
     const union = new Set([...wordsA, ...wordsB]);
-    const jaccardSimilarity = intersection.length / union.size;
+    const jaccardSimilarity = intersection.length / Math.max(union.size, 1);
 
     // Content overlap
     const contentOverlap = a.sourceContentIds.filter(
@@ -231,8 +236,94 @@ export class EntityGraphBuilder {
     ]).size;
     const contentSimilarity = contentOverlap / Math.max(totalContent, 1);
 
-    // Weighted average
-    return jaccardSimilarity * 0.6 + contentSimilarity * 0.4;
+    // v0.5.1: Also check for partial word match (n-gram)
+    const ngramSimilarity = this.calculateNgramSimilarity(
+      a.normalizedName, 
+      b.normalizedName
+    );
+
+    // Weighted average (adjusted for v0.5.1)
+    return jaccardSimilarity * 0.4 + contentSimilarity * 0.3 + ngramSimilarity * 0.3;
+  }
+
+  /**
+   * v0.5.1: Lemmatize words and expand with synonyms
+   */
+  private lemmatizeAndExpand(name: string): string[] {
+    const words = name.split(' ').filter(w => w.length > 2);
+    const expanded: string[] = [...words];
+    
+    // Add lemmatized forms
+    const lemmaMap: Record<string, string> = {
+      'guides': 'guide', 'guiding': 'guide', 'guided': 'guide',
+      'optimization': 'optimize', 'optimizing': 'optimize', 'optimized': 'optimize',
+      'rankings': 'ranking', 'ranked': 'ranking',
+      'keywords': 'keyword', 'strategies': 'strategy',
+      'links': 'link', 'linking': 'link', 'linked': 'link',
+    };
+    
+    for (const word of words) {
+      if (lemmaMap[word]) {
+        expanded.push(lemmaMap[word]);
+      }
+      // Also add the word as its own lemma target
+      for (const [variant, lemma] of Object.entries(lemmaMap)) {
+        if (lemma === word) {
+          expanded.push(variant);
+        }
+      }
+    }
+    
+    return [...new Set(expanded)];
+  }
+
+  /**
+   * v0.5.1: Check if word has synonym in word list
+   */
+  private areSynonyms(word: string, wordList: string[]): boolean {
+    const synonymMap: Record<string, string[]> = {
+      'seo': ['search', 'optimization', 'organic'],
+      'guide': ['tutorial', 'howto', 'introduction'],
+      'keyword': ['term', 'query', 'phrase'],
+      'link': ['backlink', 'hyperlink', 'url'],
+      'content': ['article', 'post', 'page'],
+      'ranking': ['position', 'serp'],
+    };
+    
+    const synonyms = synonymMap[word] || [];
+    return synonyms.some(syn => wordList.includes(syn));
+  }
+
+  /**
+   * v0.5.1: Calculate character n-gram similarity (for partial matches)
+   */
+  private calculateNgramSimilarity(a: string, b: string): number {
+    const n = 3; // trigrams
+    const ngramsA = this.getNgrams(a, n);
+    const ngramsB = this.getNgrams(b, n);
+    
+    if (ngramsA.size === 0 || ngramsB.size === 0) return 0;
+    
+    let overlap = 0;
+    for (const gram of ngramsA) {
+      if (ngramsB.has(gram)) overlap++;
+    }
+    
+    return overlap / Math.max(ngramsA.size, ngramsB.size);
+  }
+
+  /**
+   * v0.5.1: Extract character n-grams from string
+   */
+  private getNgrams(str: string, n: number): Set<string> {
+    const ngrams = new Set<string>();
+    const clean = str.replace(/\s+/g, '').toLowerCase();
+    
+    for (let i = 0; i <= clean.length - n; i++) {
+      ngrams.add(clean.substring(i, i + n));
+    }
+    
+    return ngrams;
   }
 
   /**
