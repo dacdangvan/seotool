@@ -5,3 +5,4 @@
 export * from './GoalsController';
 export * from './PlansController';
 export * from './HealthController';
+export * from './ProjectsController';

@@ -1,17 +1,20 @@
 /**
  * Project Service
  * 
- * v0.7 - Project API service with mock support
+ * v0.8 - Project API service with crawl status tracking
+ * Updated: Added crawl trigger and status APIs
  */
 
-import { Project, ProjectCreateInput, ProjectUpdateInput, ProjectAccess } from '@/types/auth';
+import { Project, ProjectCreateInput, ProjectUpdateInput, ProjectAccess, CrawlStatus } from '@/types/auth';
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
+const STORAGE_KEY = 'seo_tool_projects';
+const ACCESS_STORAGE_KEY = 'seo_tool_project_access';
 
-// Mock projects for development
-const MOCK_PROJECTS: Project[] = [
+// Default projects for VIB - Only main website
+const DEFAULT_PROJECTS: Project[] = [
   {
-    id: 'project-1',
+    id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
     name: 'VIB Main Website',
     domain: 'www.vib.com.vn',
     language: 'vi',
@@ -19,45 +22,87 @@ const MOCK_PROJECTS: Project[] = [
     updatedAt: '2024-03-15T10:30:00Z',
     ownerId: 'user-1',
     status: 'active',
-  },
-  {
-    id: 'project-2',
-    name: 'VIB Digital Banking',
-    domain: 'digital.vib.com.vn',
-    language: 'vi',
-    createdAt: '2024-02-01T00:00:00Z',
-    updatedAt: '2024-03-14T08:20:00Z',
-    ownerId: 'user-1',
-    status: 'active',
-  },
-  {
-    id: 'project-3',
-    name: 'VIB Blog',
-    domain: 'blog.vib.com.vn',
-    language: 'vi',
-    createdAt: '2024-03-01T00:00:00Z',
-    updatedAt: '2024-03-13T15:45:00Z',
-    ownerId: 'user-1',
-    status: 'active',
+    crawlStatus: 'completed',
+    crawlProgress: 100,
+    lastCrawlAt: '2026-01-20T03:57:32.843Z',
+    crawlError: null,
   },
 ];
 
-// Mock project access (which user can access which project)
-const MOCK_PROJECT_ACCESS: ProjectAccess[] = [
-  // Admin has access to all projects
-  { projectId: 'project-1', userId: 'user-1', role: 'owner', grantedAt: '2024-01-01T00:00:00Z' },
-  { projectId: 'project-2', userId: 'user-1', role: 'owner', grantedAt: '2024-02-01T00:00:00Z' },
-  { projectId: 'project-3', userId: 'user-1', role: 'owner', grantedAt: '2024-03-01T00:00:00Z' },
-  // Editor 1 has access to project 1 and 2
-  { projectId: 'project-1', userId: 'user-2', role: 'editor', grantedAt: '2024-01-15T00:00:00Z' },
-  { projectId: 'project-2', userId: 'user-2', role: 'editor', grantedAt: '2024-02-15T00:00:00Z' },
-  // Editor 2 has access only to project 3
-  { projectId: 'project-3', userId: 'user-3', role: 'editor', grantedAt: '2024-03-01T00:00:00Z' },
+// Default project access
+const DEFAULT_PROJECT_ACCESS: ProjectAccess[] = [
+  // Admin has access to VIB Main Website (user-1 matches mock user)
+  { projectId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890', userId: 'user-1', role: 'owner', grantedAt: '2024-01-01T00:00:00Z' },
 ];
 
-// In-memory mock data (mutable for create/update/delete)
-let mockProjects = [...MOCK_PROJECTS];
-let mockAccess = [...MOCK_PROJECT_ACCESS];
+// Force reset localStorage on version change
+const STORAGE_VERSION = 'v4'; // Increment to force reset
+const VERSION_KEY = 'seo_tool_storage_version';
+
+// Load projects from localStorage or use defaults
+function loadProjects(): Project[] {
+  if (typeof window === 'undefined') return DEFAULT_PROJECTS;
+  
+  try {
+    // Check version - if different, clear old data
+    const storedVersion = localStorage.getItem(VERSION_KEY);
+    if (storedVersion !== STORAGE_VERSION) {
+      console.log('Storage version changed, resetting to defaults...');
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(ACCESS_STORAGE_KEY);
+      localStorage.removeItem('currentProjectId');
+      localStorage.setItem(VERSION_KEY, STORAGE_VERSION);
+      return DEFAULT_PROJECTS;
+    }
+    
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.error('Failed to load projects from localStorage:', e);
+  }
+  return DEFAULT_PROJECTS;
+}
+
+// Save projects to localStorage
+function saveProjects(projects: Project[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+  } catch (e) {
+    console.error('Failed to save projects to localStorage:', e);
+  }
+}
+
+// Load project access from localStorage or use defaults
+function loadProjectAccess(): ProjectAccess[] {
+  if (typeof window === 'undefined') return DEFAULT_PROJECT_ACCESS;
+  try {
+    // Version check already done in loadProjects()
+    const saved = localStorage.getItem(ACCESS_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (e) {
+    console.error('Failed to load project access from localStorage:', e);
+  }
+  return DEFAULT_PROJECT_ACCESS;
+}
+
+// Save project access to localStorage
+function saveProjectAccess(access: ProjectAccess[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(ACCESS_STORAGE_KEY, JSON.stringify(access));
+  } catch (e) {
+    console.error('Failed to save project access to localStorage:', e);
+  }
+}
+
+// In-memory mock data (persisted to localStorage)
+let mockProjects = loadProjects();
+let mockAccess = loadProjectAccess();
 
 // Simulated delay for mock API
 const mockDelay = (ms: number = 500) => new Promise(resolve => setTimeout(resolve, ms));
@@ -74,10 +119,17 @@ const getToken = (): string | null => {
   }
 };
 
-// Extract user ID from mock token
-const getUserIdFromToken = (token: string): string | null => {
-  const parts = token.split('-');
-  return parts.length >= 3 ? parts[2] : null;
+// Get user ID from localStorage auth data
+const getUserId = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  const auth = localStorage.getItem('auth');
+  if (!auth) return null;
+  try {
+    const parsed = JSON.parse(auth);
+    return parsed.user?.id || null;
+  } catch {
+    return null;
+  }
 };
 
 class ProjectService {
@@ -229,10 +281,7 @@ class ProjectService {
   private async mockGetProjects(): Promise<Project[]> {
     await mockDelay();
 
-    const token = getToken();
-    if (!token) return [];
-
-    const userId = getUserIdFromToken(token);
+    const userId = getUserId();
     if (!userId) return [];
 
     // Filter projects based on user access
@@ -254,9 +303,8 @@ class ProjectService {
     }
 
     // Check access
-    const token = getToken();
-    if (token) {
-      const userId = getUserIdFromToken(token);
+    const userId = getUserId();
+    if (userId) {
       const hasAccess = mockAccess.some(
         a => a.projectId === projectId && a.userId === userId
       );
@@ -271,8 +319,7 @@ class ProjectService {
   private async mockCreateProject(input: ProjectCreateInput): Promise<Project> {
     await mockDelay();
 
-    const token = getToken();
-    const userId = token ? getUserIdFromToken(token) : 'user-1';
+    const userId = getUserId() || 'user-1';
 
     const newProject: Project = {
       id: `project-${Date.now()}`,
@@ -286,6 +333,7 @@ class ProjectService {
     };
 
     mockProjects.push(newProject);
+    saveProjects(mockProjects); // Persist to localStorage
 
     // Add access for creator
     mockAccess.push({
@@ -294,6 +342,7 @@ class ProjectService {
       role: 'owner',
       grantedAt: new Date().toISOString(),
     });
+    saveProjectAccess(mockAccess); // Persist to localStorage
 
     return newProject;
   }
@@ -313,6 +362,7 @@ class ProjectService {
     };
 
     mockProjects[index] = updated;
+    saveProjects(mockProjects); // Persist to localStorage
     return updated;
   }
 
@@ -326,9 +376,246 @@ class ProjectService {
 
     // Soft delete by setting status to archived
     mockProjects[index] = { ...mockProjects[index], status: 'archived' };
+    saveProjects(mockProjects); // Persist to localStorage
     
     // Remove access
     mockAccess = mockAccess.filter(a => a.projectId !== projectId);
+    saveProjectAccess(mockAccess); // Persist to localStorage
+  }
+
+  // ===========================================================================
+  // CRAWL APIs
+  // ===========================================================================
+
+  /**
+   * Trigger a crawl for a project
+   */
+  async triggerCrawl(projectId: string, options?: {
+    maxPages?: number;
+    maxDepth?: number;
+  }): Promise<{ success: boolean; jobId: string; message: string; status: CrawlStatus }> {
+    if (USE_MOCK) {
+      return this.mockTriggerCrawl(projectId, options);
+    }
+
+    const token = getToken();
+    const response = await fetch(`${this.baseUrl}/projects/${projectId}/crawl`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(options || {}),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to trigger crawl');
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Get crawl status for a project
+   */
+  async getCrawlStatus(projectId: string): Promise<{
+    projectId: string;
+    status: CrawlStatus;
+    progress: number;
+    isRunning: boolean;
+    canTrigger: boolean;
+    lastCrawlAt: string | null;
+    error?: string;
+  }> {
+    if (USE_MOCK) {
+      return this.mockGetCrawlStatus(projectId);
+    }
+
+    const token = getToken();
+    const response = await fetch(`${this.baseUrl}/projects/${projectId}/crawl-status`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch crawl status');
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Cancel a running crawl
+   */
+  async cancelCrawl(projectId: string): Promise<{ success: boolean; message: string }> {
+    if (USE_MOCK) {
+      return this.mockCancelCrawl(projectId);
+    }
+
+    const token = getToken();
+    const response = await fetch(`${this.baseUrl}/projects/${projectId}/crawl/cancel`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to cancel crawl');
+    }
+
+    return response.json();
+  }
+
+  // Mock crawl implementations
+  private async mockTriggerCrawl(projectId: string, options?: {
+    maxPages?: number;
+    maxDepth?: number;
+  }): Promise<{ success: boolean; jobId: string; message: string; status: CrawlStatus }> {
+    await mockDelay(300);
+
+    const index = mockProjects.findIndex(p => p.id === projectId);
+    if (index === -1) {
+      throw new Error('Project not found');
+    }
+
+    const project = mockProjects[index];
+    
+    // Check if already running
+    if (project.crawlStatus === 'running' || project.crawlStatus === 'queued') {
+      return {
+        success: true,
+        jobId: `job-${projectId}-existing`,
+        message: 'Crawl already in progress',
+        status: project.crawlStatus,
+      };
+    }
+
+    // Start crawl simulation
+    mockProjects[index] = {
+      ...project,
+      crawlStatus: 'queued',
+      crawlProgress: 0,
+      crawlError: null,
+    };
+    saveProjects(mockProjects);
+
+    // Simulate crawl progress in background
+    this.simulateCrawlProgress(projectId);
+
+    return {
+      success: true,
+      jobId: `job-${Date.now()}`,
+      message: 'Crawl job created and queued',
+      status: 'queued',
+    };
+  }
+
+  private async mockGetCrawlStatus(projectId: string): Promise<{
+    projectId: string;
+    status: CrawlStatus;
+    progress: number;
+    isRunning: boolean;
+    canTrigger: boolean;
+    lastCrawlAt: string | null;
+    error?: string;
+  }> {
+    await mockDelay(100);
+
+    const project = mockProjects.find(p => p.id === projectId);
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    const status = project.crawlStatus || 'not_started';
+    const isRunning = status === 'running' || status === 'queued';
+
+    return {
+      projectId,
+      status,
+      progress: project.crawlProgress || 0,
+      isRunning,
+      canTrigger: !isRunning,
+      lastCrawlAt: project.lastCrawlAt || null,
+      error: project.crawlError || undefined,
+    };
+  }
+
+  private async mockCancelCrawl(projectId: string): Promise<{ success: boolean; message: string }> {
+    await mockDelay(200);
+
+    const index = mockProjects.findIndex(p => p.id === projectId);
+    if (index === -1) {
+      throw new Error('Project not found');
+    }
+
+    const project = mockProjects[index];
+    if (project.crawlStatus !== 'running' && project.crawlStatus !== 'queued') {
+      return {
+        success: false,
+        message: 'No active crawl to cancel',
+      };
+    }
+
+    mockProjects[index] = {
+      ...project,
+      crawlStatus: 'cancelled',
+      crawlProgress: project.crawlProgress || 0,
+    };
+    saveProjects(mockProjects);
+
+    return {
+      success: true,
+      message: 'Crawl cancelled successfully',
+    };
+  }
+
+  private simulateCrawlProgress(projectId: string): void {
+    let progress = 0;
+    
+    const interval = setInterval(() => {
+      const index = mockProjects.findIndex(p => p.id === projectId);
+      if (index === -1) {
+        clearInterval(interval);
+        return;
+      }
+
+      const project = mockProjects[index];
+      
+      // Check if cancelled
+      if (project.crawlStatus === 'cancelled') {
+        clearInterval(interval);
+        return;
+      }
+
+      // Update status to running
+      if (project.crawlStatus === 'queued') {
+        mockProjects[index] = { ...project, crawlStatus: 'running' };
+        saveProjects(mockProjects);
+      }
+
+      // Increment progress
+      progress += Math.random() * 15 + 5;
+      
+      if (progress >= 100) {
+        // Complete
+        mockProjects[index] = {
+          ...mockProjects[index],
+          crawlStatus: 'completed',
+          crawlProgress: 100,
+          lastCrawlAt: new Date().toISOString(),
+        };
+        saveProjects(mockProjects);
+        clearInterval(interval);
+      } else {
+        mockProjects[index] = {
+          ...mockProjects[index],
+          crawlProgress: Math.min(Math.round(progress), 99),
+        };
+        saveProjects(mockProjects);
+      }
+    }, 1000);
   }
 }
 

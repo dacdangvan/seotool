@@ -9,6 +9,7 @@ import 'dotenv/config';
 import { createContainer } from './container';
 import { createServer } from './server';
 import { closePool } from './infrastructure/database/connection';
+import { closeRedis } from './infrastructure/cache/redis';
 import { Logger } from './shared/Logger';
 
 const logger = new Logger('Main');
@@ -40,6 +41,7 @@ async function main(): Promise<void> {
       try {
         await server.close();
         await closePool();
+        await closeRedis();
         logger.info('Server shutdown complete');
         process.exit(0);
       } catch (error) {

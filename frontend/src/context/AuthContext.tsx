@@ -95,6 +95,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
             }
           }
         }
+        
+        // AUTO-LOGIN with mock user for development
+        const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
+        if (USE_MOCK) {
+          const mockUser: User = {
+            id: 'user-1',
+            email: 'admin@seo.tool',
+            name: 'Admin User',
+            role: UserRole.ADMIN,
+            avatar: 'https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff',
+            createdAt: '2024-01-01T00:00:00Z',
+          };
+          const mockToken = 'mock-token-123';
+          dispatch({ type: 'AUTH_SUCCESS', payload: { user: mockUser, token: mockToken } });
+          return;
+        }
+        
         dispatch({ type: 'AUTH_FAILURE' });
       } catch (error) {
         console.error('Auth init error:', error);

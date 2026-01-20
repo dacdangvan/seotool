@@ -22,6 +22,7 @@ import {
   Search,
   Link2,
   AlertTriangle,
+  Globe,
 } from 'lucide-react';
 
 interface NavItem {
@@ -34,6 +35,8 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/crawl/dashboard', label: 'Crawl Health', icon: Globe },
+  { href: '/crawl', label: 'All Pages', icon: FileText },
   { href: '/content', label: 'Content', icon: FileText },
   { href: '/keywords', label: 'Keywords', icon: Search },
   { href: '/backlinks', label: 'Backlinks', icon: Link2 },

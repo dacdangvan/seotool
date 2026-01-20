@@ -1,0 +1,1815 @@
+{
+  "job": {
+    "id": "c9333756-190b-4b50-b999-05c4160617ac",
+    "projectId": "test",
+    "config": {
+      "maxPages": 5,
+      "maxDepth": 2,
+      "requestDelay": 1500,
+      "timeout": 30000,
+      "userAgent": "SEO-Audit-Bot/1.0 (respectful crawler; +https://www.vib.com.vn/seo-audit)",
+      "respectRobotsTxt": true,
+      "sameDomainOnly": true,
+      "enableJsRendering": false,
+      "storeRawHtml": false,
+      "retryCount": 2,
+      "backoffDelay": 2000,
+      "baseUrl": "https://www.vib.com.vn",
+      "projectId": "test"
+    },
+    "status": "completed",
+    "totalUrlsDiscovered": 70,
+    "crawledPages": 5,
+    "failedPages": 0,
+    "skippedPages": 0,
+    "createdAt": "2026-01-20T03:57:26.593Z",
+    "startedAt": "2026-01-20T03:57:26.594Z",
+    "completedAt": "2026-01-20T03:57:32.843Z"
+  },
+  "pages": [
+    {
+      "projectId": "test",
+      "url": "https://www.vib.com.vn/",
+      "statusCode": 200,
+      "responseTime": 155,
+      "title": "Ngân hàng Quốc Tế VIB - Trang dành riêng khách hàng cá nhân | VIB",
+      "titleLength": 65,
+      "metaDescription": "VIB - Ngân hàng dẫn đầu xu thế với công nghệ tiên tiến, dịch vụ đa dạng, và nhiều ưu đãi hấp dẫn, đáp ứng mọi nhu cầu tài chính cá nhân.",
+      "metaDescriptionLength": 136,
+      "metaRobots": "index, follow",
+      "hasNoindex": false,
+      "hasNofollow": false,
+      "language": "vi",
+      "h1Tags": [
+        "Tận hưởng ưu đãi độc quyền từ sản phẩm & dịch vụ tài chính VIB"
+      ],
+      "h1Count": 1,
+      "h2Tags": [
+        "Ngân hàng Quốc Tế VIB - Trang dành riêng khách hàng cá nhân | VIB",
+        "Ưu đãi lãi suất vay – Hỗ trợ tài chính linh hoạt cho mọi nhu cầu",
+        "Mở tài khoản online dễ dàng, không cần đến quầy",
+        "Giải pháp tài chính thông minh, ưu đãi vượt trội",
+        "Đặc quyền thẻ VIB: Trả góp 0%, hoàn tiền không giới hạn",
+        "Load CSS",
+        "Banner Slider Image New",
+        "Block Menu Icon",
+        "Block Degital Banking",
+        "Block Hello",
+        "Block Promotion",
+        "blocknotice",
+        "Block Card City",
+        "Popup Max"
+      ],
+      "h2Count": 14,
+      "h3Tags": [
+        "Hệ sinh thái số VIB",
+        "' + label_suguest + '",
+        "Ưu đãi nổi bật",
+        "Nhận tiền tỷ và iPhone 16 Pro Max mỗi ngày",
+        "Thế giới thẻ VIB"
+      ],
+      "h3Count": 5,
+      "wordCount": 834,
+      "contentLength": 194661,
+      "internalLinks": [
+        "https://www.vib.com.vn/vn/promotion/details/mien-phi-thuong-nien-va-hoan-tien-den-999.000-vnd-chu-the-tin-dung-mo-moi",
+        "https://www.vib.com.vn/vn/ngan-hang-so/myvib",
+        "https://www.vib.com.vn/vn/promotion",
+        "https://www.vib.com.vn/vn/promotion/details/nhan-ngay-uu-dai-nap-dien-thoai-giam-50-phan-tram-cho-khach-hang-moi",
+        "https://www.vib.com.vn/vn/promotion/details/hoan-tien-den-1-trieu-dong-khi-chi-tieu-voi-the-thanh-toan-vib",
+        "https://www.vib.com.vn/i/uu-dai-doc-quyen-haidilao",
+        "https://www.vib.com.vn/vn/promotion/detail?amp%3Bname=Phi-vu-tien-t%E1%BB%B7-cung-tai-khoan-Sieu-Loi-Suat-VIB&promotionId=4397696",
+        "https://www.vib.com.vn/vn/the-tin-dung",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-supercard",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-online-plus-2in1",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-travel-elite",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-cashback",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-reward-unlimited",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-financial-free",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-family-link",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-premier-boundless",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-business-card",
+        "https://www.vib.com.vn/vn/the-thanh-toan/vib-junior-smartcard",
+        "https://www.vib.com.vn/vn/the-thanh-toan/vib-smartcard",
+        "https://www.vib.com.vn/vn/the-thanh-toan/vib-platinum",
+        "https://www.vib.com.vn/vn/the-thanh-toan/vib-priority-signature",
+        "https://www.vib.com.vn/vn/the-thanh-toan/vib-premier-signature",
+        "https://www.vib.com.vn/vn/tai-khoan",
+        "https://www.vib.com.vn/vn/tiet-kiem",
+        "https://www.vib.com.vn/vn/san-pham-vay",
+        "https://www.vib.com.vn/vn/bao-hiem",
+        "https://www.vib.com.vn/vn/nguon-von-va-ngoai-hoi",
+        "https://www.vib.com.vn/vn/doanh-nghiep-sme",
+        "https://www.vib.com.vn/vn/doanh-nghiep",
+        "https://www.vib.com.vn/vn/khach-hang-uu-tien",
+        "https://www.vib.com.vn/vn/about-vib",
+        "https://www.vib.com.vn/vn/nha-dau-tu",
+        "https://www.vib.com.vn/vn/tuyen-dung",
+        "https://www.vib.com.vn/vn/news",
+        "https://www.vib.com.vn/vn/lien-he",
+        "https://www.vib.com.vn/vn/ty-gia",
+        "https://www.vib.com.vn/vn/dieu-khoan-su-dung",
+        "https://www.vib.com.vn/vn/an-toan-bao-mat",
+        "https://www.vib.com.vn/vn/sitemap",
+        "https://www.vib.com.vn/vn/atm-chinhanh"
+      ],
+      "internalLinksCount": 41,
+      "externalLinks": [
+        "http://windows.microsoft.com/en-us/internet-explorer/download-ie",
+        "https://myvib.onelink.me/OPVS/34xqpc89"
+      ],
+      "externalLinksCount": 2,
+      "images": [
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2023/firework/fire3.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2023/firework/option-01-left.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2023/firework/option-01-right.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/52911b00-8a8d-4226-bda6-8193ac96ab95/icon_myvib_3x.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-52911b00-8a8d-4226-bda6-8193ac96ab95-pL11PCB",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/2fbd4143-318e-4b68-9182-36469b230a62/myvib-1-logo+34xqpc89.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-2fbd4143-318e-4b68-9182-36469b230a62-pL11PCB",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/9b94bd06-9028-4552-8482-15fba8789ea5/icon_ar_3x.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-9b94bd06-9028-4552-8482-15fba8789ea5-pL11PCB",
+          "alt": "Công nghệ hiện đại",
+          "hasAlt": true,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/62a93bf3-326e-4316-b852-062764148520/icon_max_3x.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-62a93bf3-326e-4316-b852-062764148520-pL11PCB",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/8f3aa0aa-5afa-4f9e-9729-103c4896c62b/max-1-logo+1wjoo2di.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-8f3aa0aa-5afa-4f9e-9729-103c4896c62b-pL11PCB",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/fb85b93a-4251-4b44-880e-a7c9774ade8e/Cashback.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-fb85b93a-4251-4b44-880e-a7c9774ade8e-pL11PCB",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/e81e530e-2c2b-42cf-96ac-5fd3977351b7/1/icon-notification+%281%29.svg?MOD=AJPERES",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2023/firework/fire2.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2023/firework/fire1.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/eclipse.png?t=2022",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/9ad7f025-2ab2-46db-a20c-c7cae343eecd/Splash+screen.png.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-9ad7f025-2ab2-46db-a20c-c7cae343eecd-pK.s1mW",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-success.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-warning.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-error.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        }
+      ],
+      "imagesCount": 67,
+      "imagesWithoutAlt": 66,
+      "hasOpenGraph": false,
+      "hasStructuredData": false,
+      "contentHash": "365916ae",
+      "contentType": "text/html; charset=UTF-8",
+      "crawlDepth": 0,
+      "crawledAt": "2026-01-20T03:57:26.982Z",
+      "issues": [
+        {
+          "type": "title_too_long",
+          "severity": "warning",
+          "message": "Title quá dài (65 ký tự)",
+          "details": "Ngưỡng: 30-60 ký tự",
+          "recommendation": "Rút gọn title, đặt keyword quan trọng ở đầu."
+        },
+        {
+          "type": "missing_canonical",
+          "severity": "info",
+          "message": "Thiếu thẻ canonical",
+          "recommendation": "Thêm canonical URL để tránh duplicate content."
+        },
+        {
+          "type": "missing_alt_text",
+          "severity": "warning",
+          "message": "66/67 hình ảnh thiếu alt text",
+          "recommendation": "Thêm alt text mô tả cho tất cả hình ảnh."
+        },
+        {
+          "type": "missing_structured_data",
+          "severity": "info",
+          "message": "Thiếu structured data (JSON-LD)",
+          "recommendation": "Thêm schema markup phù hợp với loại trang (Organization, BreadcrumbList, etc.)"
+        },
+        {
+          "type": "missing_open_graph",
+          "severity": "info",
+          "message": "Thiếu Open Graph tags",
+          "recommendation": "Thêm OG tags (og:title, og:description, og:image) cho chia sẻ social."
+        }
+      ]
+    },
+    {
+      "projectId": "test",
+      "url": "https://www.vib.com.vn/vn/the-tin-dung",
+      "statusCode": 200,
+      "responseTime": 50,
+      "title": "Đăng ký mở thẻ tín dụng online 24/7 | VIB",
+      "titleLength": 41,
+      "metaDescription": "Đăng ký làm thẻ tín dụng online ngay tại bất kỳ đâu để tận hưởng và trải nghiệm những ưu đãi đẳng cấp, hấp dẫn cùng 10 dòng thẻ tín dụng VIB. Xem ngay!",
+      "metaDescriptionLength": 151,
+      "metaRobots": "index, follow",
+      "hasNoindex": false,
+      "hasNofollow": false,
+      "language": "vi",
+      "h1Tags": [
+        "Thẻ tín dụng",
+        "Thẻ tín dụng"
+      ],
+      "h1Count": 2,
+      "h2Tags": [
+        "Đăng ký mở thẻ tín dụng online 24/7 | VIB",
+        "Thẻ tín dụng là gì?",
+        "Có bao nhiêu loại thẻ tín dụng?",
+        "Danh sách thẻ tín dụng",
+        "Các chức năng chính của thẻ tín dụng",
+        "Ưu đãi thẻ tín dụng",
+        "Ưu đãi giới hạn",
+        "Thông tin hữu ích về thẻ tín dụng VIB",
+        "FAQs",
+        "Hỗ trợ thẻ tín dụng",
+        "Float menu",
+        "Truy cập nhanh"
+      ],
+      "h2Count": 12,
+      "h3Tags": [
+        "VIB Business Card",
+        "VIB Cash Back",
+        "VIB Premier Boundless",
+        "VIB Travel Élite",
+        "VIB Rewards Unlimited",
+        "VIB Online Plus 2in1",
+        "VIB Family Link",
+        "VIB Financial Free",
+        "VIB Super Card",
+        "VIB Ivy Card",
+        "So sánh thẻ",
+        "x3 Ưu đãi khi mở thẻ!",
+        "Thông tin khác",
+        "Ngân hàng phát hành thẻ tín dụng tốt nhất Việt Nam 2018",
+        "Câu hỏi thường gặp link",
+        "Chúng tôi sẵn sàng hỗ trợ"
+      ],
+      "h3Count": 16,
+      "wordCount": 2475,
+      "contentLength": 291924,
+      "internalLinks": [
+        "https://www.vib.com.vn/vn/product-landing/the-ngan-hang/the-tin-dung/so-sanh-the",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-business-card/bieu-phi-va-dieu-kien",
+        "https://www.vib.com.vn/vn/product-landing/the-ngan-hang/the-tin-dung/the-tin-dung-platinum",
+        "https://www.vib.com.vn/vn/product-landing/the-ngan-hang/the-tin-dung/the-tin-dung-platinum/bieu-phi-va-dieu-kien",
+        "https://www.vib.com.vn/vn/the-tin-dung/bao-hiem-the-tin-dung",
+        "https://www.vib.com.vn/vn/product-landing/the-ngan-hang/the-tin-dung/vib-premier-boundless",
+        "https://www.vib.com.vn/vn/product-landing/the-ngan-hang/the-tin-dung/vib-premier-boundless/bieu-phi-va-dieu-kien",
+        "https://www.vib.com.vn/vn/product-landing/the-ngan-hang/the-tin-dung/the-tin-dung-world",
+        "https://www.vib.com.vn/vn/product-landing/the-ngan-hang/the-tin-dung/the-tin-dung-world/bieu-phi-va-dieu-kien",
+        "https://www.vib.com.vn/vn/product-landing/the-ngan-hang/the-tin-dung/the-tin-dung-gold",
+        "https://www.vib.com.vn/vn/product-landing/the-ngan-hang/the-tin-dung/the-tin-dung-gold/bieu-phi-va-dieu-kien",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-online-plus-2in1/bieu-phi-va-dieu-kien",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-family-link/bieu-phi-va-dieu-kien",
+        "https://www.vib.com.vn/vn/product-landing/the-ngan-hang/the-tin-dung/the-tin-dung-classic",
+        "https://www.vib.com.vn/vn/product-landing/the-ngan-hang/the-tin-dung/the-tin-dung-classic/bieu-phi-va-dieu-kien",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-supercard/bieu-phi-va-dieu-kien",
+        "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard/bieu-phi-va-dieu-kien",
+        "https://www.vib.com.vn/vn/promotion/details/uu-dai-da-tang-mung-sinh-nhat-7-nam-the-tin-dung-vib",
+        "https://www.vib.com.vn/vn/promotion/promotions-landing",
+        "https://www.vib.com.vn/vn/atm",
+        "https://www.vib.com.vn/vn/cam-nang-tai-chinh/the",
+        "https://www.vib.com.vn/vn/faqs-cau-hoi-thuong-gap",
+        "https://www.vib.com.vn/vn/the-tin-dung/dang-ky",
+        "https://www.vib.com.vn/i/so-the-dep"
+      ],
+      "internalLinksCount": 24,
+      "externalLinks": [
+        "https://vibarcard.com/?CardID=11",
+        "https://vibarcard.com/?CardID=1",
+        "https://vibarcard.com/?CardID=9",
+        "https://vibarcard.com/?CardID=8",
+        "https://vibarcard.com/?CardID=4",
+        "https://vibarcard.com/?CardID=3",
+        "https://vibarcard.com/?CardID=2",
+        "https://vibarcard.com/?CardID=0",
+        "https://vibarcard.com/?CardID=7",
+        "https://vibarcard.com/?CardID=10"
+      ],
+      "externalLinksCount": 10,
+      "images": [
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/b4a2b68d-2f51-47dc-b7a7-cafffc7336a5/VIB+Business+card.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-b4a2b68d-2f51-47dc-b7a7-cafffc7336a5-pDyfBNM",
+          "alt": "Thẻ tín dụng VIB Business Card",
+          "hasAlt": true,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/d568d266-1e87-45ae-89bb-4fcbb777b2c7/QR%2Bcode%2B_%2BBiz%2BCard.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-d568d266-1e87-45ae-89bb-4fcbb777b2c7-pooKS6W",
+          "alt": "Trải nghiệm bằng AR thẻ VIB Business Card",
+          "hasAlt": true,
+          "isExternal": false,
+          "width": 60,
+          "height": 60
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/e0b1dc2d-0bda-4f0f-a0bc-df8a43b14fcd/Th%E1%BA%BB+t%C3%ADn+d%E1%BB%A5ng+VIB+Cash+Back.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-e0b1dc2d-0bda-4f0f-a0bc-df8a43b14fcd-ptzSX82",
+          "alt": "Thẻ tín dụng VIB Cash Back",
+          "hasAlt": true,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/1563ff0a-f8bc-4375-9b9e-fb2265885f42/1/Cash+Back+-+QR+Web.webp?MOD=AJPERES",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 60,
+          "height": 60
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/42b77580-2bb6-4cf1-be84-c1f2d429de87/Th%E1%BA%BB+t%C3%ADn+d%E1%BB%A5ng+VIB+Premier+Boundless.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-42b77580-2bb6-4cf1-be84-c1f2d429de87-ptzMqu4",
+          "alt": "Thẻ tín dụng VIB Premier Boundless",
+          "hasAlt": true,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/a69799cd-0cb2-4586-be20-fc3a9a40a4b0/1/Premier+Boundless+-+QR+Web.webp?MOD=AJPERES",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 60,
+          "height": 60
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/91120a9f-4f78-475f-add5-a411b8767346/Th%E1%BA%BB+t%C3%ADn+d%E1%BB%A5ng+VIB+Travel+%C3%89lite.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-91120a9f-4f78-475f-add5-a411b8767346-ptzINjZ",
+          "alt": "Thẻ tín dụng VIB Travel Élite",
+          "hasAlt": true,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/84fa12f1-9cdc-4e05-b499-2063f1f22e94/1/Travel+E%CC%81lite+-+QR+Web.webp?MOD=AJPERES",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 60,
+          "height": 60
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/e7ef2378-58e1-4e68-ade9-acabebcfd738/Th%E1%BA%BB+t%C3%ADn+d%E1%BB%A5ng+VIB+Rewards+Unlimited.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-e7ef2378-58e1-4e68-ade9-acabebcfd738-ptzRGQ9",
+          "alt": "Thẻ tín dụng VIB Rewards Unlimited",
+          "hasAlt": true,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/d342c1a0-2928-48c7-a376-4c3ed5a2c0d4/1/Rewards+Unlimited+-+QR+Web.webp?MOD=AJPERES",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 60,
+          "height": 60
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/af3984c2-0d7e-4799-b549-0780a3b94012/Th%E1%BA%BB+t%C3%ADn+d%E1%BB%A5ng+VIB+Online+Plus+2in1.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-af3984c2-0d7e-4799-b549-0780a3b94012-ptzRSER",
+          "alt": "Thẻ tín dụng VIB Online Plus 2in1",
+          "hasAlt": true,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/5477e303-17a9-4928-b926-8eb8949011a0/1/Online+Plus+2in1+-+QR+Web.webp?MOD=AJPERES",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 60,
+          "height": 60
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/94d08d7d-c6fe-4114-9bd5-c9dc671e1c39/Th%E1%BA%BB+t%C3%ADn+d%E1%BB%A5ng+VIB+Family+Link.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-94d08d7d-c6fe-4114-9bd5-c9dc671e1c39-ptzRyRU",
+          "alt": "Thẻ tín dụng VIB Family Link",
+          "hasAlt": true,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/86c0fe35-d0b9-4787-8607-c5390657de9a/1/Family+Link+-+QR+Web.webp?MOD=AJPERES",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 60,
+          "height": 60
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/2bf29772-35a3-42e3-9b63-f15349b9cef6/Th%E1%BA%BB+t%C3%ADn+d%E1%BB%A5ng+VIB+Financial+Free.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-2bf29772-35a3-42e3-9b63-f15349b9cef6-ptzQhCr",
+          "alt": "Thẻ tín dụng VIB Financial Free",
+          "hasAlt": true,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/3bd24f39-1c19-4451-af18-e42d5d1b5161/1/Financial+Free+-+QR+Web.webp?MOD=AJPERES",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 60,
+          "height": 60
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/9f5491cd-ff80-436d-8fac-274d71b389ff/sp.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-9f5491cd-ff80-436d-8fac-274d71b389ff-ptzQnwl",
+          "alt": "Thẻ tín dụng VIB Super Card",
+          "hasAlt": true,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/f1d2247e-1dff-4dad-9521-716914d8a42a/1/Super+Card+-+QR+Web.webp?MOD=AJPERES",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 60,
+          "height": 60
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/b00267f8-0483-4346-95b1-8c9533dc01da/iv.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-b00267f8-0483-4346-95b1-8c9533dc01da-pxPaSEL",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/37c54562-6ad4-4342-bcb1-2d6612d3ded1/Din.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-37c54562-6ad4-4342-bcb1-2d6612d3ded1-oYopCYt",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 60,
+          "height": 60
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/vs2018/images/popup_icon01.png",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/vs2018/images/popup_icon02.png",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/vs2018/images/popup_icon03.png",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/vs2018/images/popup_icon08.png",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/vs2018/images/popup_icon04.png",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/vs2018/images/popup_icon05.png",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/vs2018/images/popup_icon06.png",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/vs2018/images/popup_icon07.png",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/vs2018/images/popup_icon05.png",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/vs2018/images/popup_icon08.png",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/bd19ab80-6b0a-4157-a2dc-28f740db3ff9/cc-certificate.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-bd19ab80-6b0a-4157-a2dc-28f740db3ff9-olok5oC",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/9700e45b-5209-455d-9085-53e841905afb/thi%C3%AAt+k%E1%BA%BF+1.svg?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-9700e45b-5209-455d-9085-53e841905afb-pg66fhw",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 72,
+          "height": 72
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/c3f4f7f6-bfaa-40d4-9111-d3f0d7075c45/t%C3%ACm+1.svg?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-c3f4f7f6-bfaa-40d4-9111-d3f0d7075c45-pg667Hn",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 400,
+          "height": 400
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/1a659ab5-5401-46f7-b990-476f17ab1260/so+s%C3%A1nh+2.svg?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-1a659ab5-5401-46f7-b990-476f17ab1260-pg6trbI",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 400,
+          "height": 400
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/1c3da66f-58ca-4fc6-85b9-49550897a093/tr%E1%BA%A3+g%C3%B3p+1.svg?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-1c3da66f-58ca-4fc6-85b9-49550897a093-phFsITv",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 400,
+          "height": 400
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/e77ad784-589c-435c-9bbc-4221272d7730/tra+c%E1%BB%A9u+1.svg?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-e77ad784-589c-435c-9bbc-4221272d7730-pg66bEP",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 400,
+          "height": 400
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-success.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-warning.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-error.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        }
+      ],
+      "imagesCount": 72,
+      "imagesWithoutAlt": 62,
+      "hasOpenGraph": false,
+      "hasStructuredData": false,
+      "contentHash": "227e6aa9",
+      "contentType": "text/html; charset=UTF-8",
+      "crawlDepth": 1,
+      "crawledAt": "2026-01-20T03:57:28.355Z",
+      "issues": [
+        {
+          "type": "multiple_h1",
+          "severity": "warning",
+          "message": "Có 2 thẻ H1",
+          "details": "H1 tags: Thẻ tín dụng, Thẻ tín dụng",
+          "recommendation": "Chỉ nên có một thẻ H1 trên mỗi trang."
+        },
+        {
+          "type": "missing_canonical",
+          "severity": "info",
+          "message": "Thiếu thẻ canonical",
+          "recommendation": "Thêm canonical URL để tránh duplicate content."
+        },
+        {
+          "type": "missing_alt_text",
+          "severity": "warning",
+          "message": "62/72 hình ảnh thiếu alt text",
+          "recommendation": "Thêm alt text mô tả cho tất cả hình ảnh."
+        },
+        {
+          "type": "missing_structured_data",
+          "severity": "info",
+          "message": "Thiếu structured data (JSON-LD)",
+          "recommendation": "Thêm schema markup phù hợp với loại trang (Organization, BreadcrumbList, etc.)"
+        },
+        {
+          "type": "missing_open_graph",
+          "severity": "info",
+          "message": "Thiếu Open Graph tags",
+          "recommendation": "Thêm OG tags (og:title, og:description, og:image) cho chia sẻ social."
+        }
+      ]
+    },
+    {
+      "projectId": "test",
+      "url": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+      "statusCode": 200,
+      "responseTime": 218,
+      "title": "Thẻ tín dụng VIB IvyCard | VIB",
+      "titleLength": 30,
+      "metaRobots": "index, follow",
+      "hasNoindex": false,
+      "hasNofollow": false,
+      "language": "vi",
+      "h1Tags": [
+        "VIB Ivy Card"
+      ],
+      "h1Count": 1,
+      "h2Tags": [
+        "Header",
+        "Section1",
+        "VIB IvyCard details",
+        "Section2",
+        "Section3",
+        "Section4",
+        "Section5",
+        "Section6",
+        "Section 7",
+        "Section 8"
+      ],
+      "h2Count": 10,
+      "h3Tags": [],
+      "h3Count": 0,
+      "wordCount": 325,
+      "contentLength": 158490,
+      "internalLinks": [
+        "https://www.vib.com.vn/vn/product-landing/the-ngan-hang/the-tin-dung",
+        "https://www.vib.com.vn/vn/the-tin-dung/diem-thuong-hoan-tien"
+      ],
+      "internalLinksCount": 2,
+      "externalLinks": [
+        "https://webxr.run/dmezL1XzPENk"
+      ],
+      "externalLinksCount": 1,
+      "images": [
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/9041c2de-673f-4fa0-b94e-88f3f3db9d14/iv.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-9041c2de-673f-4fa0-b94e-88f3f3db9d14-pEk4ZIq",
+          "alt": "VIB LazCard",
+          "hasAlt": true,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/f506099d-bb1f-4899-acd4-094e06384aea/Din.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-f506099d-bb1f-4899-acd4-094e06384aea-oYopU7I",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 60,
+          "height": 60
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-success.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-warning.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-error.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        }
+      ],
+      "imagesCount": 35,
+      "imagesWithoutAlt": 34,
+      "hasOpenGraph": false,
+      "hasStructuredData": false,
+      "contentHash": "08f030b4",
+      "contentType": "text/html; charset=UTF-8",
+      "crawlDepth": 1,
+      "crawledAt": "2026-01-20T03:57:30.015Z",
+      "issues": [
+        {
+          "type": "missing_meta_description",
+          "severity": "critical",
+          "message": "Thiếu meta description",
+          "recommendation": "Thêm meta description hấp dẫn (150-160 ký tự) với CTA."
+        },
+        {
+          "type": "missing_canonical",
+          "severity": "info",
+          "message": "Thiếu thẻ canonical",
+          "recommendation": "Thêm canonical URL để tránh duplicate content."
+        },
+        {
+          "type": "missing_alt_text",
+          "severity": "warning",
+          "message": "34/35 hình ảnh thiếu alt text",
+          "recommendation": "Thêm alt text mô tả cho tất cả hình ảnh."
+        },
+        {
+          "type": "missing_structured_data",
+          "severity": "info",
+          "message": "Thiếu structured data (JSON-LD)",
+          "recommendation": "Thêm schema markup phù hợp với loại trang (Organization, BreadcrumbList, etc.)"
+        },
+        {
+          "type": "missing_open_graph",
+          "severity": "info",
+          "message": "Thiếu Open Graph tags",
+          "recommendation": "Thêm OG tags (og:title, og:description, og:image) cho chia sẻ social."
+        }
+      ]
+    },
+    {
+      "projectId": "test",
+      "url": "https://www.vib.com.vn/vn/the-tin-dung/vib-supercard",
+      "statusCode": 200,
+      "responseTime": 42,
+      "title": "Thẻ Tín Dụng VIB Super Card | VIB",
+      "titleLength": 33,
+      "metaDescription": "Trọn quyền làm chủ với thẻ tín dụng VIB Super Card, hoàn 15% linh hoạt tùy chọn lĩnh vực chi tiêu Ẩm thực, Mua sắm, Du lịch. Mở thẻ ngay!",
+      "metaDescriptionLength": 137,
+      "metaRobots": "index, follow",
+      "hasNoindex": false,
+      "hasNofollow": false,
+      "language": "vi",
+      "h1Tags": [
+        "VIB Super Card"
+      ],
+      "h1Count": 1,
+      "h2Tags": [
+        "Header",
+        "Section1",
+        "VIB Supercard detail"
+      ],
+      "h2Count": 3,
+      "h3Tags": [],
+      "h3Count": 0,
+      "wordCount": 302,
+      "contentLength": 133349,
+      "internalLinks": [],
+      "internalLinksCount": 0,
+      "externalLinks": [
+        "https://webxr.run/r3xoRMGADyDdk"
+      ],
+      "externalLinksCount": 1,
+      "images": [
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-supercard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-supercard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-supercard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-supercard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-supercard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-supercard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/e1131dd1-5efc-4364-a923-9111bf86d363/sp.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-e1131dd1-5efc-4364-a923-9111bf86d363-pGh5CAW",
+          "alt": "VIB Super Card",
+          "hasAlt": true,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/a5518183-066a-42ec-b298-4bdde11d65df/1/Super+Card+-+QR+Web.webp?MOD=AJPERES",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 60,
+          "height": 60
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-supercard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-supercard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-supercard",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-success.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-warning.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-error.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        }
+      ],
+      "imagesCount": 14,
+      "imagesWithoutAlt": 13,
+      "hasOpenGraph": false,
+      "hasStructuredData": false,
+      "contentHash": "10b45d22",
+      "contentType": "text/html; charset=UTF-8",
+      "crawlDepth": 1,
+      "crawledAt": "2026-01-20T03:57:31.340Z",
+      "issues": [
+        {
+          "type": "missing_canonical",
+          "severity": "info",
+          "message": "Thiếu thẻ canonical",
+          "recommendation": "Thêm canonical URL để tránh duplicate content."
+        },
+        {
+          "type": "missing_alt_text",
+          "severity": "warning",
+          "message": "13/14 hình ảnh thiếu alt text",
+          "recommendation": "Thêm alt text mô tả cho tất cả hình ảnh."
+        },
+        {
+          "type": "missing_structured_data",
+          "severity": "info",
+          "message": "Thiếu structured data (JSON-LD)",
+          "recommendation": "Thêm schema markup phù hợp với loại trang (Organization, BreadcrumbList, etc.)"
+        },
+        {
+          "type": "missing_open_graph",
+          "severity": "info",
+          "message": "Thiếu Open Graph tags",
+          "recommendation": "Thêm OG tags (og:title, og:description, og:image) cho chia sẻ social."
+        }
+      ]
+    },
+    {
+      "projectId": "test",
+      "url": "https://www.vib.com.vn/vn/the-tin-dung/vib-online-plus-2in1",
+      "statusCode": 200,
+      "responseTime": 48,
+      "title": "Thẻ tín dụng VIB Online Plus 2in1 | VIB",
+      "titleLength": 39,
+      "metaDescription": "Khám phá thẻ tín dụng VIB Online Plus 2in1 - Hoàn 6% chi tiêu trực tuyến. Sở hữu ngay chỉ 30 phút!",
+      "metaDescriptionLength": 98,
+      "metaRobots": "index, follow",
+      "hasNoindex": false,
+      "hasNofollow": false,
+      "language": "vi",
+      "h1Tags": [
+        "VIB Online Plus 2in1"
+      ],
+      "h1Count": 1,
+      "h2Tags": [
+        "Thẻ tín dụng VIB Online Plus 2in1 | VIB",
+        "Section1",
+        "VIB Online Plus details"
+      ],
+      "h2Count": 3,
+      "h3Tags": [],
+      "h3Count": 0,
+      "wordCount": 306,
+      "contentLength": 133837,
+      "internalLinks": [
+        "https://www.vib.com.vn/vn/product-landing/the-ngan-hang/the-tin-dung/vib-online-plus-2in1/chuong-trinh-hoan-tien",
+        "https://www.vib.com.vn/vn/product-landing/the-ngan-hang/the-tin-dung/vib-online-plus-2in1/bieu-phi-va-dieu-kien"
+      ],
+      "internalLinksCount": 2,
+      "externalLinks": [
+        "https://webxr.run/mPpr2a9wpJ7xA"
+      ],
+      "externalLinksCount": 1,
+      "images": [
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-online-plus-2in1",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-online-plus-2in1",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-online-plus-2in1",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-online-plus-2in1",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-online-plus-2in1",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-online-plus-2in1",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/619a1d62-bef7-42fd-a9e5-1c55975eb85f/2in1.webp?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE-619a1d62-bef7-42fd-a9e5-1c55975eb85f-pEk4H7L",
+          "alt": "VIB Online Plus 2in1",
+          "hasAlt": true,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/wps/wcm/connect/e2768063-f2ac-4862-9d8b-c9c4d5d3f46b/1/Online+Plus+2in1+-+QR+Web.webp?MOD=AJPERES",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false,
+          "width": 60,
+          "height": 60
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-online-plus-2in1",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-online-plus-2in1",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/vn/the-tin-dung/vib-online-plus-2in1",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-success.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-warning.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        },
+        {
+          "src": "https://www.vib.com.vn/static/theme/2022/icon-error.svg",
+          "alt": "",
+          "hasAlt": false,
+          "isExternal": false
+        }
+      ],
+      "imagesCount": 14,
+      "imagesWithoutAlt": 13,
+      "hasOpenGraph": false,
+      "hasStructuredData": false,
+      "contentHash": "738c8d1c",
+      "contentType": "text/html; charset=UTF-8",
+      "crawlDepth": 1,
+      "crawledAt": "2026-01-20T03:57:32.842Z",
+      "issues": [
+        {
+          "type": "meta_description_too_short",
+          "severity": "warning",
+          "message": "Meta description quá ngắn (98 ký tự)",
+          "details": "Ngưỡng: 120-160 ký tự",
+          "recommendation": "Viết description chi tiết hơn để tăng CTR."
+        },
+        {
+          "type": "missing_canonical",
+          "severity": "info",
+          "message": "Thiếu thẻ canonical",
+          "recommendation": "Thêm canonical URL để tránh duplicate content."
+        },
+        {
+          "type": "missing_alt_text",
+          "severity": "warning",
+          "message": "13/14 hình ảnh thiếu alt text",
+          "recommendation": "Thêm alt text mô tả cho tất cả hình ảnh."
+        },
+        {
+          "type": "missing_structured_data",
+          "severity": "info",
+          "message": "Thiếu structured data (JSON-LD)",
+          "recommendation": "Thêm schema markup phù hợp với loại trang (Organization, BreadcrumbList, etc.)"
+        },
+        {
+          "type": "missing_open_graph",
+          "severity": "info",
+          "message": "Thiếu Open Graph tags",
+          "recommendation": "Thêm OG tags (og:title, og:description, og:image) cho chia sẻ social."
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "totalPages": 5,
+    "successfulPages": 5,
+    "failedPages": 0,
+    "skippedPages": 0,
+    "totalCrawlTime": 6249,
+    "avgResponseTime": 103,
+    "maxResponseTime": 218,
+    "minResponseTime": 42,
+    "avgWordCount": 848,
+    "avgContentLength": 182452,
+    "totalInternalLinks": 69,
+    "totalExternalLinks": 15,
+    "uniqueInternalLinks": 70,
+    "totalImages": 202,
+    "imagesWithoutAlt": 188,
+    "altTextCoverage": 7,
+    "totalIssues": 24,
+    "criticalIssues": 1,
+    "warningIssues": 8,
+    "infoIssues": 15,
+    "issuesByType": {
+      "title_too_long": 1,
+      "missing_canonical": 5,
+      "missing_alt_text": 5,
+      "missing_structured_data": 5,
+      "missing_open_graph": 5,
+      "multiple_h1": 1,
+      "missing_meta_description": 1,
+      "meta_description_too_short": 1
+    },
+    "pagesWithoutTitle": 0,
+    "pagesWithoutMetaDescription": 1,
+    "pagesWithoutH1": 0,
+    "pagesWithMultipleH1": 1,
+    "pagesWithThinContent": 0,
+    "pagesWithNoindex": 0,
+    "duplicateTitles": 0,
+    "duplicateDescriptions": 0,
+    "statusCodeDistribution": {
+      "200": 5
+    }
+  }
+}

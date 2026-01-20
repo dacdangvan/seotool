@@ -12,39 +12,51 @@
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
     "db:migrate": "node-pg-migrate up",
-    "db:migrate:down": "node-pg-migrate down"
+    "db:migrate:down": "node-pg-migrate down",
+    "test:cwv": "tsx src/crawler/cwv/test_cwv_runner.ts",
+    "test:crawler": "tsx src/crawler/test_full_crawler.ts",
+    "test:rendered": "tsx src/crawler/js-render/test_rendered_crawler.ts"
   },
-  "keywords": ["seo", "ai", "orchestrator", "fastify"],
+  "keywords": [
+    "seo",
+    "ai",
+    "orchestrator",
+    "fastify"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "fastify": "^4.25.0",
     "@fastify/cors": "^8.5.0",
     "@fastify/swagger": "^8.12.0",
     "@fastify/swagger-ui": "^2.1.0",
-    "pg": "^8.11.3",
+    "@playwright/test": "^1.57.0",
     "bullmq": "^5.1.0",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.3.1",
+    "fastify": "^4.25.0",
     "ioredis": "^5.3.2",
-    "uuid": "^9.0.1",
+    "pg": "^8.11.3",
     "pino": "^8.17.0",
     "pino-pretty": "^10.3.0",
-    "zod": "^3.22.4",
-    "dotenv": "^16.3.1"
+    "playwright": "^1.57.0",
+    "uuid": "^9.0.1",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/cheerio": "^0.22.35",
     "@types/node": "^20.10.0",
     "@types/pg": "^8.10.9",
     "@types/uuid": "^9.0.7",
-    "typescript": "^5.3.0",
-    "tsx": "^4.6.0",
-    "vitest": "^1.1.0",
-    "@vitest/coverage-v8": "^1.1.0",
-    "eslint": "^8.55.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
-    "node-pg-migrate": "^6.2.2"
+    "@vitest/coverage-v8": "^1.1.0",
+    "eslint": "^8.55.0",
+    "node-pg-migrate": "^6.2.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.1.0"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }

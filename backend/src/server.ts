@@ -52,6 +52,8 @@ export async function createServer(container: Container): Promise<FastifyInstanc
       tags: [
         { name: 'Goals', description: 'SEO Goals management' },
         { name: 'Plans', description: 'SEO Plans management' },
+        { name: 'Projects', description: 'Projects and SEO Metrics management' },
+        { name: 'Crawler', description: 'Web Crawler operations' },
         { name: 'Health', description: 'Health checks' },
       ],
     },
@@ -69,6 +71,8 @@ export async function createServer(container: Container): Promise<FastifyInstanc
   container.goalsController.registerRoutes(app);
   container.plansController.registerRoutes(app);
   container.healthController.registerRoutes(app);
+  container.projectsController.registerRoutes(app);
+  container.crawlerController.registerRoutes(app);
 
   // Global error handler
   app.setErrorHandler((error, request, reply) => {

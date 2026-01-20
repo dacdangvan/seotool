@@ -29,7 +29,11 @@ import {
   GoalsController,
   PlansController,
   HealthController,
+  ProjectsController,
 } from './interfaces/http/controllers/index';
+
+// Crawler (new auto-crawl system)
+import { CrawlController } from './crawler/crawl_controller';
 
 import { Logger } from './shared/Logger';
 
@@ -53,6 +57,8 @@ export interface Container {
   goalsController: GoalsController;
   plansController: PlansController;
   healthController: HealthController;
+  projectsController: ProjectsController;
+  crawlerController: CrawlController;
 }
 
 /**
@@ -81,6 +87,8 @@ export function createContainer(): Container {
   const goalsController = new GoalsController(goalService);
   const plansController = new PlansController(planService);
   const healthController = new HealthController(agentDispatcher);
+  const projectsController = new ProjectsController(pool);
+  const crawlerController = new CrawlController(pool);
 
   logger.info('Dependency container initialized');
 
@@ -97,5 +105,7 @@ export function createContainer(): Container {
     goalsController,
     plansController,
     healthController,
+    projectsController,
+    crawlerController,
   };
 }

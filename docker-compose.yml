@@ -14,18 +14,20 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/migrations:/docker-entrypoint-initdb.d
+      - ./database/migrations:/docker-entrypoint-initdb.d/01-migrations
+      - ./database/seeds:/docker-entrypoint-initdb.d/02-seeds
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Redis for BullMQ
+  # Redis for BullMQ and Cache
   redis:
     image: redis:7-alpine
     container_name: ai-seo-redis
     restart: unless-stopped
+    command: redis-server --appendonly yes
     ports:
       - "6379:6379"
     volumes:
@@ -51,9 +53,11 @@ services:
       DB_NAME: ai_seo_tool
       DB_USER: postgres
       DB_PASSWORD: postgres
+      REDIS_URL: redis://redis:6379
       REDIS_HOST: redis
       REDIS_PORT: 6379
       LOG_LEVEL: info
+      CORS_ORIGIN: http://localhost:3001
     ports:
       - "3000:3000"
     depends_on:

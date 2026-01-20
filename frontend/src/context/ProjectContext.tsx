@@ -121,12 +121,19 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
       const projects = await projectService.getProjects();
       dispatch({ type: 'SET_PROJECTS', payload: projects });
 
-      // Auto-select first project if none selected
+      // Auto-select project if none selected
       if (!state.currentProject && projects.length > 0) {
         // Check localStorage for last selected project
         const lastProjectId = localStorage.getItem('currentProjectId');
         const lastProject = projects.find((p: Project) => p.id === lastProjectId);
-        dispatch({ type: 'SET_CURRENT_PROJECT', payload: lastProject || projects[0] });
+        
+        // Default to VIB Main Website (www.vib.com.vn) if no last project
+        const vibMainProject = projects.find((p: Project) => p.domain === 'www.vib.com.vn');
+        
+        dispatch({ 
+          type: 'SET_CURRENT_PROJECT', 
+          payload: lastProject || vibMainProject || projects[0] 
+        });
       }
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Failed to fetch projects' });

@@ -68,6 +68,8 @@ export interface AuthResponse {
 }
 
 // Project types
+export type CrawlStatus = 'not_started' | 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+
 export interface Project {
   id: string;
   name: string;
@@ -77,6 +79,11 @@ export interface Project {
   updatedAt: string;
   ownerId: string;
   status: 'active' | 'archived';
+  // Crawl status fields
+  crawlStatus?: CrawlStatus;
+  crawlProgress?: number;
+  lastCrawlAt?: string;
+  crawlError?: string | null;
 }
 
 export interface ProjectCreateInput {

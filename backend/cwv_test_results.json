@@ -1,0 +1,149 @@
+[
+  {
+    "projectId": "test-project-id",
+    "url": "https://www.vib.com.vn/",
+    "device": "mobile",
+    "vitals": {
+      "lcp": {
+        "value": 0,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "0.00s"
+      },
+      "inp": null,
+      "cls": {
+        "value": 0,
+        "unit": "ratio",
+        "status": "good",
+        "displayValue": "0.000"
+      },
+      "fcp": {
+        "value": 568,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "0.57s"
+      },
+      "ttfb": {
+        "value": 203,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "203ms"
+      },
+      "si": {
+        "value": 931,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "0.93s"
+      },
+      "tbt": {
+        "value": 0,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "0ms"
+      },
+      "performanceScore": 80
+    },
+    "overallStatus": "good",
+    "measuredAt": "2026-01-20T06:54:58.484Z",
+    "lighthouseVersion": "11.0.0",
+    "userAgent": "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.91 Mobile Safari/537.36"
+  },
+  {
+    "projectId": "test-project-id",
+    "url": "https://www.vib.com.vn/vi/",
+    "device": "mobile",
+    "vitals": {
+      "lcp": {
+        "value": 0,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "0.00s"
+      },
+      "inp": null,
+      "cls": {
+        "value": 0,
+        "unit": "ratio",
+        "status": "good",
+        "displayValue": "0.000"
+      },
+      "fcp": {
+        "value": 464,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "0.46s"
+      },
+      "ttfb": {
+        "value": 174,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "174ms"
+      },
+      "si": {
+        "value": 616,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "0.62s"
+      },
+      "tbt": {
+        "value": 0,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "0ms"
+      },
+      "performanceScore": 80
+    },
+    "overallStatus": "good",
+    "measuredAt": "2026-01-20T06:55:06.287Z",
+    "lighthouseVersion": "11.0.0",
+    "userAgent": "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.91 Mobile Safari/537.36"
+  },
+  {
+    "projectId": "test-project-id",
+    "url": "https://www.vib.com.vn/vi/ca-nhan",
+    "device": "mobile",
+    "vitals": {
+      "lcp": {
+        "value": 0,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "0.00s"
+      },
+      "inp": null,
+      "cls": {
+        "value": 0,
+        "unit": "ratio",
+        "status": "good",
+        "displayValue": "0.000"
+      },
+      "fcp": {
+        "value": 384,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "0.38s"
+      },
+      "ttfb": {
+        "value": 146,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "146ms"
+      },
+      "si": {
+        "value": 451,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "0.45s"
+      },
+      "tbt": {
+        "value": 0,
+        "unit": "ms",
+        "status": "good",
+        "displayValue": "0ms"
+      },
+      "performanceScore": 80
+    },
+    "overallStatus": "good",
+    "measuredAt": "2026-01-20T06:55:14.093Z",
+    "lighthouseVersion": "11.0.0",
+    "userAgent": "Mozilla/5.0 (Linux; Android 11; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.91 Mobile Safari/537.36"
+  }
+]

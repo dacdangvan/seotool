@@ -1,6 +1,6 @@
 # 🧠 AI SEO TOOL – PROMPT BOOK
 
-**Version:** 2.1 – JS-Aware, Browser-Rendered SEO Architecture
+**Version:** 2.3 – Diff Report Implementation Complete
 **Purpose:** Single Source of Truth for AI-driven Development
 **Audience:** Developers, AI Coding Assistants (VSCode + Copilot / Cursor)
 
@@ -931,5 +931,133 @@ Rendered DOM output is the single source of truth for:
 Any inconsistency between raw and rendered HTML MUST be detectable and auditable.
 
 ---
+---
+
+# 9. RAW HTML vs RENDERED DOM DIFF REPORT
+
+**Status:** ✅ Implemented (MVP)
+
+This section defines how the system MUST compare raw HTML and browser-rendered DOM
+to detect JavaScript-dependent SEO signals and potential indexing risks.
+
+The purpose is transparency, debugging, and SEO risk governance.
+
+---
+
+## 9.1 Why Diff Report Is Mandatory
+
+Modern websites often generate SEO-critical elements via JavaScript.
+Without diffing raw HTML vs rendered DOM:
+
+- SEO audits may be misleading
+- Google indexing risks are invisible
+- Debugging SEO regressions becomes impossible
+
+Diff reporting makes JS dependency explicit and auditable.
+
+---
+
+## 9.2 Comparison Scope
+
+The system MUST compare the following elements between raw HTML and rendered DOM:
+
+### Head Elements
+- <title>
+- <meta name="description">
+- <link rel="canonical">
+- <meta name="robots">
+
+### Content Structure
+- H1–H3 headings
+- Visible text content length
+- Main content container presence
+
+### Links
+- Internal links (<a href>)
+- Navigation links
+- Footer links
+
+### Structured Data
+- JSON-LD scripts
+- Schema types present
+
+---
+
+## 9.3 Diff Categories
+
+Each difference MUST be classified into one of the following categories:
+
+- ADDED_BY_JS  
+  Present only in rendered DOM
+
+- MISSING_IN_RENDER  
+  Present in raw HTML but missing after render
+
+- CHANGED_BY_JS  
+  Present in both but with different values
+
+- IDENTICAL  
+  No difference
+
+---
+
+## 9.4 SEO Risk Classification
+
+Based on diff results, each page MUST be assigned a JS Dependency Risk level:
+
+| Risk Level | Criteria |
+|----------|----------|
+| LOW | Minor or no SEO elements differ |
+| MEDIUM | Titles or internal links differ |
+| HIGH | Title, H1, canonical, or indexability differ |
+
+This risk level MUST be stored per URL and exposed to frontend.
+
+---
+
+## 9.5 Diff Report Output Schema
+
+For each crawled URL, the system MUST generate a diff report:
+
+```json
+{
+  "url": "https://www.vib.com.vn/vn/the-tin-dung/vib-ivycard",
+  "render_mode": "js_rendered",
+  "diff_summary": {
+    "title": "CHANGED_BY_JS",
+    "meta_description": "ADDED_BY_JS",
+    "h1": "ADDED_BY_JS",
+    "internal_links": {
+      "raw": 100,
+      "rendered": 500
+    },
+    "structured_data": "ADDED_BY_JS"
+  },
+  "js_dependency_risk": "HIGH"
+}
+```
+
+---
+
+## 9.6 Implementation Files
+
+The Diff Report feature is implemented across the following files:
+
+### Backend (Node.js/TypeScript)
+- `backend/src/crawler/js-render/types.ts` - Type definitions for DiffCategory, JsDependencyRisk, DiffReport
+- `backend/src/crawler/js-render/html_dom_differ.ts` - HtmlDomDiffer class comparing raw HTML vs rendered DOM
+- `backend/src/crawler/js-render/diff_risk_classifier.ts` - DiffRiskClassifier for JS dependency risk assessment
+- `backend/src/crawler/js-render/index.ts` - Module exports
+
+### Frontend (Next.js/TypeScript)
+- `frontend/src/components/crawl/DiffReportBadge.tsx` - UI components:
+  - JsRiskBadge: Risk level badge (LOW/MEDIUM/HIGH)
+  - JsRiskCell: Table cell with risk indicator
+  - JsRiskHeader: Column header with tooltip
+  - JsRiskFilter: Filter by risk level
+  - JsRiskStats: Summary statistics
+  - DiffReportPanel: Expandable diff details panel
+  - DiffCategoryBadge: Category status indicator
+- `frontend/src/app/crawl/page.tsx` - Integration with crawl results table
 
 # END OF FILE
