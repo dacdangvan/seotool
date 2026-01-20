@@ -20,4 +20,28 @@ export {
   calculateOpportunityScore,
   getOpportunityLevel,
 } from './OpportunityBadge';
+export {
+  MappingStatusBadge,
+  CannibalizationWarning,
+  ConflictWarning,
+  MappingStatusLegend,
+  MappingStatsSummary,
+  getMappingStatus,
+  calculateCannibalizationRisk,
+  MAPPING_STATUS_CONFIG,
+  CANNIBALIZATION_RISK_CONFIG,
+} from './MappingStatusBadge';
+export {
+  KeywordMappingTable,
+} from './KeywordMappingTable';
+export type {
+  MappingStatus,
+  KeywordMapping,
+  MappingStatusConfig,
+} from './MappingStatusBadge';
+export type {
+  KeywordMappingRow,
+  MappingSortField,
+  MappingFilterStatus,
+} from './KeywordMappingTable';
 
