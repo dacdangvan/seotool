@@ -22,13 +22,12 @@ import type {
   SortDirection,
   SearchIntent,
   KeywordDifficulty,
-  OpportunityLevel,
 } from '@/types/keyword.types';
 import {
   SEARCH_INTENT_CONFIG,
   KEYWORD_DIFFICULTY_CONFIG,
-  OPPORTUNITY_CONFIG,
 } from '@/types/keyword.types';
+import { OpportunityBadge } from './OpportunityBadge';
 import { 
   ArrowUp, 
   ArrowDown, 
@@ -96,20 +95,6 @@ function DifficultyCell({ difficulty, score }: { difficulty: KeywordDifficulty; 
         {score}
       </span>
     </div>
-  );
-}
-
-function OpportunityBadge({ opportunity }: { opportunity: OpportunityLevel }) {
-  const config = OPPORTUNITY_CONFIG[opportunity];
-  return (
-    <span className={cn(
-      'inline-flex px-2 py-1 rounded-full text-xs font-medium',
-      config.bgColor,
-      config.color
-    )}>
-      {opportunity === 'high' && '★ '}
-      {config.label}
-    </span>
   );
 }
 
@@ -479,7 +464,12 @@ export function KeywordTable({
                   <IntentBadge intent={kw.intent} />
                 </td>
                 <td className="py-3 px-4 text-center">
-                  <OpportunityBadge opportunity={kw.opportunity} />
+                  <OpportunityBadge 
+                    opportunity={kw.opportunity} 
+                    size="sm"
+                    showTooltip={true}
+                    variant="pill"
+                  />
                 </td>
                 <td className="py-3 px-4 text-center">
                   <RankCell rank={kw.currentRank} change={kw.rankChange} />

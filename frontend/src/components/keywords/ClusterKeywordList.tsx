@@ -9,7 +9,8 @@
 import React from 'react';
 import { cn, formatCompact } from '@/lib/utils';
 import type { Keyword, SearchIntent } from '@/types/keyword.types';
-import { SEARCH_INTENT_CONFIG, OPPORTUNITY_CONFIG } from '@/types/keyword.types';
+import { SEARCH_INTENT_CONFIG } from '@/types/keyword.types';
+import { OpportunityBadge } from './OpportunityBadge';
 import { 
   ArrowUp, 
   ArrowDown, 
@@ -73,15 +74,6 @@ function RankIndicator({ rank, change }: { rank: number | null; change: number |
   );
 }
 
-function OpportunityIndicator({ opportunity }: { opportunity: string }) {
-  const config = OPPORTUNITY_CONFIG[opportunity as keyof typeof OPPORTUNITY_CONFIG];
-  if (opportunity !== 'high') return null;
-  
-  return (
-    <span className="text-yellow-500 text-xs" title="High Opportunity">★</span>
-  );
-}
-
 export function ClusterKeywordList({ 
   keywords, 
   maxDisplay = 10,
@@ -113,7 +105,14 @@ export function ClusterKeywordList({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-sm text-gray-900 truncate">{kw.keyword}</span>
-              <OpportunityIndicator opportunity={kw.opportunity} />
+              {kw.opportunity === 'high' && (
+                <OpportunityBadge 
+                  opportunity={kw.opportunity} 
+                  size="xs" 
+                  variant="compact"
+                  showTooltip={false}
+                />
+              )}
             </div>
           </div>
           
