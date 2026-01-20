@@ -13,3 +13,14 @@ export { CrawlSummaryCards } from './CrawlSummaryCards';
 export { CrawlStatusChart } from './CrawlStatusChart';
 export { CrawlIssuesChart } from './CrawlIssuesChart';
 export { CrawlDashboard } from './CrawlDashboard';
+
+// URL Inventory components (Section 11)
+export {
+  UrlInventoryTable,
+  StateBadge,
+  SourceBadge,
+  StateFilter,
+  SourceFilter,
+  CrawlCoverageBar,
+  Pagination,
+} from './UrlInventoryTable';

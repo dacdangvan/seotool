@@ -2,6 +2,7 @@
  * Crawl Results Page
  * 
  * Display SEO crawl results with detailed analysis
+ * v1.0 - Added URL Inventory Tab (Section 11.8)
  * v0.9 - Added Core Web Vitals columns
  */
 
@@ -24,6 +25,8 @@ import {
   Smartphone,
   Monitor,
   Gauge,
+  Layers,
+  List,
 } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { RoleGuard } from '@/components/RoleGuard';
@@ -60,6 +63,62 @@ import {
   type JsDependencyRisk,
   type DiffCategory,
 } from '@/components/crawl/DiffReportBadge';
+import { UrlInventoryTable, CrawlCoverageBar } from '@/components/crawl/UrlInventoryTable';
+import { useUrlInventory, useCrawlCoverage } from '@/hooks/useUrlInventory';
+
+// Tab types
+type TabType = 'inventory' | 'results';
+
+// Tab component
+interface TabsProps {
+  activeTab: TabType;
+  onTabChange: (tab: TabType) => void;
+  inventoryCount?: number;
+  resultsCount?: number;
+}
+
+function Tabs({ activeTab, onTabChange, inventoryCount, resultsCount }: TabsProps) {
+  return (
+    <div className="flex border-b mb-6">
+      <button
+        onClick={() => onTabChange('inventory')}
+        className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+          activeTab === 'inventory'
+            ? 'border-blue-600 text-blue-600'
+            : 'border-transparent text-gray-500 hover:text-gray-700'
+        }`}
+      >
+        <Layers className="w-4 h-4" />
+        All URLs (Inventory)
+        {inventoryCount !== undefined && (
+          <span className={`px-2 py-0.5 rounded-full text-xs ${
+            activeTab === 'inventory' ? 'bg-blue-100' : 'bg-gray-100'
+          }`}>
+            {inventoryCount}
+          </span>
+        )}
+      </button>
+      <button
+        onClick={() => onTabChange('results')}
+        className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+          activeTab === 'results'
+            ? 'border-blue-600 text-blue-600'
+            : 'border-transparent text-gray-500 hover:text-gray-700'
+        }`}
+      >
+        <List className="w-4 h-4" />
+        Crawled Pages (SEO Results)
+        {resultsCount !== undefined && (
+          <span className={`px-2 py-0.5 rounded-full text-xs ${
+            activeTab === 'results' ? 'bg-blue-100' : 'bg-gray-100'
+          }`}>
+            {resultsCount}
+          </span>
+        )}
+      </button>
+    </div>
+  );
+}
 
 // Format bytes to human readable
 function formatBytes(bytes: number): string {
@@ -308,6 +367,9 @@ function PageDetails({ page, diffReport }: { page: PageSEOData; diffReport?: Dif
 }
 
 function CrawlResultsContent() {
+  // Active tab state - default to 'inventory' per § 11.8
+  const [activeTab, setActiveTab] = useState<TabType>('inventory');
+  
   const [data, setData] = useState<CrawlResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -328,6 +390,24 @@ function CrawlResultsContent() {
   const [jsRiskFilter, setJsRiskFilter] = useState<JsDependencyRisk | 'all'>('all');
   const [diffReports, setDiffReports] = useState<Map<string, DiffReport>>(new Map());
   const [diffPanelUrl, setDiffPanelUrl] = useState<string | null>(null);
+  
+  // URL Inventory hooks (Section 11)
+  const projectId = 'default'; // TODO: Get from project context
+  const {
+    items: inventoryItems,
+    isLoading: inventoryLoading,
+    error: inventoryError,
+    page: inventoryPage,
+    totalPages: inventoryTotalPages,
+    totalItems: inventoryTotalItems,
+    stats: inventoryStats,
+    filters: inventoryFilters,
+    goToPage: inventoryGoToPage,
+    setFilters: setInventoryFilters,
+    refresh: refreshInventory,
+  } = useUrlInventory({ projectId, pageSize: 50 });
+  
+  const { coverage, refresh: refreshCoverage } = useCrawlCoverage(projectId, 5000);
   
   const loadData = async () => {
     try {
@@ -452,6 +532,15 @@ function CrawlResultsContent() {
   const handleRefresh = () => {
     clearCrawlCache();
     loadData();
+    refreshInventory();
+    refreshCoverage();
+  };
+  
+  // Navigate to SEO results when clicking a URL in inventory
+  const handleViewUrlDetails = (url: string) => {
+    // Switch to results tab and potentially filter/highlight this URL
+    setActiveTab('results');
+    // TODO: Could scroll to or highlight the specific URL
   };
   
   const togglePage = (url: string) => {
@@ -488,53 +577,11 @@ function CrawlResultsContent() {
     return { highCount, mediumCount, lowCount };
   }, [diffReports]);
   
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="ml-64 p-8">
-          <div className="animate-pulse">
-            <div className="h-8 w-64 bg-gray-200 rounded mb-4" />
-            <div className="h-4 w-96 bg-gray-200 rounded mb-8" />
-            <div className="grid grid-cols-4 gap-4 mb-8">
-              {[1,2,3,4].map(i => (
-                <div key={i} className="h-32 bg-gray-200 rounded" />
-              ))}
-            </div>
-            <div className="h-96 bg-gray-200 rounded" />
-          </div>
-        </main>
-      </div>
-    );
-  }
-  
-  if (error || !data) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="ml-64 flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              {error || 'No crawl data available'}
-            </h2>
-            <p className="text-gray-600 mb-4">
-              Run the crawler first to generate SEO data.
-            </p>
-            <button
-              onClick={handleRefresh}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Retry
-            </button>
-          </div>
-        </main>
-      </div>
-    );
-  }
-  
-  const { job, summary, pages } = data;
-  const scores = calculateSEOHealthScore(summary);
+  // Prepare crawl data if available
+  const job = data?.job;
+  const summary = data?.summary;
+  const pages = data?.pages || [];
+  const scores = summary ? calculateSEOHealthScore(summary) : null;
   
   // Filter pages
   let filteredPages = pages.filter(page => {
@@ -575,13 +622,13 @@ function CrawlResultsContent() {
       <Sidebar />
       <main className="ml-64 p-8">
         {/* Header */}
-        <div className="flex justify-between items-start mb-8">
+        <div className="flex justify-between items-start mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-1">
-              Crawl Results
+              URL Discovery & Crawl Results
             </h1>
             <p className="text-gray-600">
-              SEO analysis for {job.config.baseUrl}
+              {job?.config?.baseUrl || 'SEO analysis'} – {coverage?.totalUrls || 0} URLs discovered
             </p>
           </div>
           <div className="flex gap-2">
@@ -589,267 +636,107 @@ function CrawlResultsContent() {
               onClick={handleRefresh}
               className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-50"
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className={`w-4 h-4 ${isLoading || inventoryLoading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
-            <a
-              href="/crawl-data.json"
-              download="crawl-result.json"
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              <Download className="w-4 h-4" />
-              Export JSON
-            </a>
+            {data && (
+              <a
+                href="/crawl-data.json"
+                download="crawl-result.json"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <Download className="w-4 h-4" />
+                Export JSON
+              </a>
+            )}
           </div>
         </div>
         
-        {/* Job Info */}
-        <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <div>
-                <span className="text-xs text-gray-500 uppercase">Status</span>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="font-medium text-green-600 capitalize">{job.status}</span>
+        {/* Tabs - § 11.8 requires URL Inventory view */}
+        <Tabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          inventoryCount={inventoryTotalItems || coverage?.totalUrls}
+          resultsCount={summary?.totalPages}
+        />
+        
+        {/* URL Inventory Tab Content - Default tab per § 11.8 */}
+        {activeTab === 'inventory' && (
+          <UrlInventoryTable
+            items={inventoryItems}
+            isLoading={inventoryLoading}
+            error={inventoryError}
+            page={inventoryPage}
+            totalPages={inventoryTotalPages}
+            totalItems={inventoryTotalItems}
+            pageSize={50}
+            stats={inventoryStats}
+            coverage={coverage}
+            filters={inventoryFilters}
+            onPageChange={inventoryGoToPage}
+            onFilterChange={setInventoryFilters}
+            onRefresh={refreshInventory}
+            onViewDetails={handleViewUrlDetails}
+          />
+        )}
+        
+        {/* SEO Results Tab Content */}
+        {activeTab === 'results' && (
+          <>
+            {isLoading ? (
+              <div className="animate-pulse">
+                <div className="grid grid-cols-4 gap-4 mb-8">
+                  {[1,2,3,4].map(i => (
+                    <div key={i} className="h-32 bg-gray-200 rounded" />
+                  ))}
                 </div>
+                <div className="h-96 bg-gray-200 rounded" />
               </div>
-              <div>
-                <span className="text-xs text-gray-500 uppercase">Pages Crawled</span>
-                <div className="font-medium">{summary.totalPages}</div>
+            ) : error || !data ? (
+              <div className="bg-white rounded-lg border p-8 text-center">
+                <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  {error || 'No SEO crawl results available'}
+                </h2>
+                <p className="text-gray-600 mb-4">
+                  Run the SEO crawler to analyze discovered URLs.
+                </p>
+                <button
+                  onClick={handleRefresh}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Retry
+                </button>
               </div>
-              <div>
-                <span className="text-xs text-gray-500 uppercase">Duration</span>
-                <div className="font-medium">{formatDuration(summary.totalCrawlTime)}</div>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 uppercase">Avg Response</span>
-                <div className="font-medium">{summary.avgResponseTime}ms</div>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 uppercase">URLs Discovered</span>
-                <div className="font-medium">{job.totalUrlsDiscovered}</div>
-              </div>
-            </div>
-            <div className="text-sm text-gray-500">
-              <Clock className="w-4 h-4 inline mr-1" />
-              {new Date(job.completedAt || job.createdAt).toLocaleString('vi-VN')}
-            </div>
-          </div>
-        </div>
-        
-        {/* Scores */}
-        <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">SEO Health Score</h2>
-          <div className="flex justify-around">
-            <ScoreCircle score={scores.overall} label="Overall" size="lg" />
-            <ScoreCircle score={scores.technical} label="Technical" />
-            <ScoreCircle score={scores.content} label="Content" />
-            <ScoreCircle score={scores.meta} label="Meta Tags" />
-          </div>
-        </div>
-        
-        {/* Summary Stats */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg shadow-sm border p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FileText className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{summary.totalPages}</div>
-                <div className="text-sm text-gray-500">Pages Analyzed</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-sm border p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-red-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{summary.totalIssues}</div>
-                <div className="text-sm text-gray-500">
-                  Total Issues ({summary.criticalIssues} critical)
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-sm border p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <LinkIcon className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{summary.uniqueInternalLinks}</div>
-                <div className="text-sm text-gray-500">Unique Internal Links</div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-sm border p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <ImageIcon className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <div className="text-2xl font-bold">{summary.altTextCoverage}%</div>
-                <div className="text-sm text-gray-500">Image Alt Coverage</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Issue Summary */}
-        <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-          <h3 className="font-semibold mb-3">Issue Summary</h3>
-          <div className="grid grid-cols-6 gap-4 text-center">
-            <div>
-              <div className="text-lg font-bold text-red-600">{summary.pagesWithoutTitle}</div>
-              <div className="text-xs text-gray-500">Missing Title</div>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-red-600">{summary.pagesWithoutMetaDescription}</div>
-              <div className="text-xs text-gray-500">Missing Description</div>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-yellow-600">{summary.pagesWithoutH1}</div>
-              <div className="text-xs text-gray-500">Missing H1</div>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-yellow-600">{summary.pagesWithMultipleH1}</div>
-              <div className="text-xs text-gray-500">Multiple H1</div>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-orange-600">{summary.pagesWithThinContent}</div>
-              <div className="text-xs text-gray-500">Thin Content</div>
-            </div>
-            <div>
-              <div className="text-lg font-bold text-gray-600">{summary.imagesWithoutAlt}</div>
-              <div className="text-xs text-gray-500">Images No Alt</div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Pages Table */}
-        <div className="bg-white rounded-lg shadow-sm border">
-          <div className="p-4 border-b flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <h3 className="font-semibold">Crawled Pages ({filteredPages.length})</h3>
-              <RenderModeStats 
-                htmlCount={renderStats.htmlCount} 
-                jsRenderedCount={renderStats.jsRenderedCount} 
-                total={renderStats.total} 
+            ) : (
+              <SeoResultsContent
+                job={job!}
+                summary={summary!}
+                scores={scores!}
+                filteredPages={filteredPages}
+                filter={filter}
+                setFilter={setFilter}
+                renderModeFilter={renderModeFilter}
+                setRenderModeFilter={setRenderModeFilter}
+                jsRiskFilter={jsRiskFilter}
+                setJsRiskFilter={setJsRiskFilter}
+                cwvDevice={cwvDevice}
+                setCwvDevice={setCwvDevice}
+                sortBy={sortBy}
+                setSortBy={setSortBy}
+                expandedPages={expandedPages}
+                togglePage={togglePage}
+                cwvData={cwvData}
+                setCwvPanelUrl={setCwvPanelUrl}
+                renderModeData={renderModeData}
+                diffReports={diffReports}
+                setDiffPanelUrl={setDiffPanelUrl}
+                renderStats={renderStats}
+                jsRiskStats={jsRiskStats}
               />
-              <JsRiskStats 
-                highCount={jsRiskStats.highCount}
-                mediumCount={jsRiskStats.mediumCount}
-                lowCount={jsRiskStats.lowCount}
-              />
-            </div>
-            <div className="flex items-center gap-4">
-              {/* Render Mode Filter */}
-              <RenderModeFilter value={renderModeFilter} onChange={setRenderModeFilter} />
-              
-              {/* JS Risk Filter */}
-              <JsRiskFilter value={jsRiskFilter} onChange={setJsRiskFilter} />
-              
-              {/* CWV Device Toggle */}
-              <CWVTableHeader device={cwvDevice} onDeviceChange={setCwvDevice} />
-              
-              {/* Sort by */}
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">Sort:</span>
-                <button
-                  onClick={() => setSortBy('default')}
-                  className={`px-3 py-1 rounded text-sm ${sortBy === 'default' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}
-                >
-                  Default
-                </button>
-                <button
-                  onClick={() => setSortBy('cwv')}
-                  className={`px-3 py-1 rounded text-sm flex items-center gap-1 ${sortBy === 'cwv' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}
-                >
-                  <Gauge size={14} />
-                  Worst CWV
-                </button>
-              </div>
-              
-              {/* Filters */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setFilter('all')}
-                  className={`px-3 py-1 rounded text-sm ${filter === 'all' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setFilter('issues')}
-                  className={`px-3 py-1 rounded text-sm ${filter === 'issues' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100'}`}
-                >
-                  With Issues
-                </button>
-                <button
-                  onClick={() => setFilter('critical')}
-                  className={`px-3 py-1 rounded text-sm ${filter === 'critical' ? 'bg-red-100 text-red-700' : 'bg-gray-100'}`}
-                >
-                  Critical Only
-                </button>
-              </div>
-            </div>
-          </div>
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">URL</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  <RenderModeHeader />
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  <JsRiskHeader />
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Response</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  <div className="flex items-center gap-1">
-                    Score
-                    {cwvDevice === 'mobile' ? <Smartphone size={12} /> : <Monitor size={12} />}
-                  </div>
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  <CWVMetricHeader metric="lcp" />
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  <CWVMetricHeader metric="cls" />
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Issues</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {filteredPages.map(page => {
-                const pageRenderMode = renderModeData.get(page.url);
-                const pageDiffReport = diffReports.get(page.url);
-                return (
-                  <PageRow
-                    key={page.url}
-                    page={page}
-                    isExpanded={expandedPages.has(page.url)}
-                    onToggle={() => togglePage(page.url)}
-                    cwvData={cwvData.get(page.url)}
-                    cwvDevice={cwvDevice}
-                    onCWVClick={() => setCwvPanelUrl(page.url)}
-                    renderMode={pageRenderMode?.mode}
-                    renderTime={pageRenderMode?.renderTime}
-                    diffReport={pageDiffReport}
-                    onDiffClick={() => setDiffPanelUrl(page.url)}
-                  />
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+            )}
+          </>
+        )}
         
         {/* CWV Detail Panel */}
         <CWVDetailPanel
@@ -861,6 +748,311 @@ function CrawlResultsContent() {
         />
       </main>
     </div>
+  );
+}
+
+// SEO Results Content Component - extracted for cleaner code
+interface SeoResultsContentProps {
+  job: CrawlResult['job'];
+  summary: CrawlResult['summary'];
+  scores: ReturnType<typeof calculateSEOHealthScore>;
+  filteredPages: PageSEOData[];
+  filter: 'all' | 'issues' | 'critical';
+  setFilter: (f: 'all' | 'issues' | 'critical') => void;
+  renderModeFilter: RenderMode | 'all';
+  setRenderModeFilter: (f: RenderMode | 'all') => void;
+  jsRiskFilter: JsDependencyRisk | 'all';
+  setJsRiskFilter: (f: JsDependencyRisk | 'all') => void;
+  cwvDevice: DeviceProfile;
+  setCwvDevice: (d: DeviceProfile) => void;
+  sortBy: 'default' | 'cwv';
+  setSortBy: (s: 'default' | 'cwv') => void;
+  expandedPages: Set<string>;
+  togglePage: (url: string) => void;
+  cwvData: Map<string, PageCWV[]>;
+  setCwvPanelUrl: (url: string | null) => void;
+  renderModeData: Map<string, { mode: RenderMode; renderTime?: number }>;
+  diffReports: Map<string, DiffReport>;
+  setDiffPanelUrl: (url: string | null) => void;
+  renderStats: { htmlCount: number; jsRenderedCount: number; total: number };
+  jsRiskStats: { highCount: number; mediumCount: number; lowCount: number };
+}
+
+function SeoResultsContent({
+  job,
+  summary,
+  scores,
+  filteredPages,
+  filter,
+  setFilter,
+  renderModeFilter,
+  setRenderModeFilter,
+  jsRiskFilter,
+  setJsRiskFilter,
+  cwvDevice,
+  setCwvDevice,
+  sortBy,
+  setSortBy,
+  expandedPages,
+  togglePage,
+  cwvData,
+  setCwvPanelUrl,
+  renderModeData,
+  diffReports,
+  setDiffPanelUrl,
+  renderStats,
+  jsRiskStats,
+}: SeoResultsContentProps) {
+  return (
+    <>
+      {/* Job Info */}
+      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div>
+              <span className="text-xs text-gray-500 uppercase">Status</span>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                <span className="font-medium text-green-600 capitalize">{job.status}</span>
+              </div>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500 uppercase">Pages Crawled</span>
+              <div className="font-medium">{summary.totalPages}</div>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500 uppercase">Duration</span>
+              <div className="font-medium">{formatDuration(summary.totalCrawlTime)}</div>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500 uppercase">Avg Response</span>
+              <div className="font-medium">{summary.avgResponseTime}ms</div>
+            </div>
+            <div>
+              <span className="text-xs text-gray-500 uppercase">URLs Discovered</span>
+              <div className="font-medium">{job.totalUrlsDiscovered}</div>
+            </div>
+          </div>
+          <div className="text-sm text-gray-500">
+            <Clock className="w-4 h-4 inline mr-1" />
+            {new Date(job.completedAt || job.createdAt).toLocaleString('vi-VN')}
+          </div>
+        </div>
+      </div>
+      
+      {/* Scores */}
+      <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+        <h2 className="text-lg font-semibold mb-4">SEO Health Score</h2>
+        <div className="flex justify-around">
+          <ScoreCircle score={scores.overall} label="Overall" size="lg" />
+          <ScoreCircle score={scores.technical} label="Technical" />
+          <ScoreCircle score={scores.content} label="Content" />
+          <ScoreCircle score={scores.meta} label="Meta Tags" />
+        </div>
+      </div>
+      
+      {/* Summary Stats */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <FileText className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{summary.totalPages}</div>
+              <div className="text-sm text-gray-500">Pages Analyzed</div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-red-100 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{summary.totalIssues}</div>
+              <div className="text-sm text-gray-500">
+                Total Issues ({summary.criticalIssues} critical)
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <LinkIcon className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{summary.uniqueInternalLinks}</div>
+              <div className="text-sm text-gray-500">Unique Internal Links</div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow-sm border p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <ImageIcon className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{summary.altTextCoverage}%</div>
+              <div className="text-sm text-gray-500">Image Alt Coverage</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Issue Summary */}
+      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
+        <h3 className="font-semibold mb-3">Issue Summary</h3>
+        <div className="grid grid-cols-6 gap-4 text-center">
+          <div>
+            <div className="text-lg font-bold text-red-600">{summary.pagesWithoutTitle}</div>
+            <div className="text-xs text-gray-500">Missing Title</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-red-600">{summary.pagesWithoutMetaDescription}</div>
+            <div className="text-xs text-gray-500">Missing Description</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-yellow-600">{summary.pagesWithoutH1}</div>
+            <div className="text-xs text-gray-500">Missing H1</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-yellow-600">{summary.pagesWithMultipleH1}</div>
+            <div className="text-xs text-gray-500">Multiple H1</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-orange-600">{summary.pagesWithThinContent}</div>
+            <div className="text-xs text-gray-500">Thin Content</div>
+          </div>
+          <div>
+            <div className="text-lg font-bold text-gray-600">{summary.imagesWithoutAlt}</div>
+            <div className="text-xs text-gray-500">Images No Alt</div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Pages Table */}
+      <div className="bg-white rounded-lg shadow-sm border">
+        <div className="p-4 border-b flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <h3 className="font-semibold">Crawled Pages ({filteredPages.length})</h3>
+            <RenderModeStats 
+              htmlCount={renderStats.htmlCount} 
+              jsRenderedCount={renderStats.jsRenderedCount} 
+              total={renderStats.total} 
+            />
+            <JsRiskStats 
+              highCount={jsRiskStats.highCount}
+              mediumCount={jsRiskStats.mediumCount}
+              lowCount={jsRiskStats.lowCount}
+            />
+          </div>
+          <div className="flex items-center gap-4">
+            {/* Render Mode Filter */}
+            <RenderModeFilter value={renderModeFilter} onChange={setRenderModeFilter} />
+            
+            {/* JS Risk Filter */}
+            <JsRiskFilter value={jsRiskFilter} onChange={setJsRiskFilter} />
+            
+            {/* CWV Device Toggle */}
+            <CWVTableHeader device={cwvDevice} onDeviceChange={setCwvDevice} />
+            
+            {/* Sort by */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">Sort:</span>
+              <button
+                onClick={() => setSortBy('default')}
+                className={`px-3 py-1 rounded text-sm ${sortBy === 'default' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}
+              >
+                Default
+              </button>
+              <button
+                onClick={() => setSortBy('cwv')}
+                className={`px-3 py-1 rounded text-sm flex items-center gap-1 ${sortBy === 'cwv' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}
+              >
+                <Gauge size={14} />
+                Worst CWV
+              </button>
+            </div>
+            
+            {/* Filters */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setFilter('all')}
+                className={`px-3 py-1 rounded text-sm ${filter === 'all' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setFilter('issues')}
+                className={`px-3 py-1 rounded text-sm ${filter === 'issues' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100'}`}
+              >
+                With Issues
+              </button>
+              <button
+                onClick={() => setFilter('critical')}
+                className={`px-3 py-1 rounded text-sm ${filter === 'critical' ? 'bg-red-100 text-red-700' : 'bg-gray-100'}`}
+              >
+                Critical Only
+              </button>
+            </div>
+          </div>
+        </div>
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">URL</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <RenderModeHeader />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <JsRiskHeader />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Response</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <div className="flex items-center gap-1">
+                  Score
+                  {cwvDevice === 'mobile' ? <Smartphone size={12} /> : <Monitor size={12} />}
+                </div>
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <CWVMetricHeader metric="lcp" />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <CWVMetricHeader metric="cls" />
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Issues</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {filteredPages.map(page => {
+              const pageRenderMode = renderModeData.get(page.url);
+              const pageDiffReport = diffReports.get(page.url);
+              return (
+                <PageRow
+                  key={page.url}
+                  page={page}
+                  isExpanded={expandedPages.has(page.url)}
+                  onToggle={() => togglePage(page.url)}
+                  cwvData={cwvData.get(page.url)}
+                  cwvDevice={cwvDevice}
+                  onCWVClick={() => setCwvPanelUrl(page.url)}
+                  renderMode={pageRenderMode?.mode}
+                  renderTime={pageRenderMode?.renderTime}
+                  diffReport={pageDiffReport}
+                  onDiffClick={() => setDiffPanelUrl(page.url)}
+                />
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
