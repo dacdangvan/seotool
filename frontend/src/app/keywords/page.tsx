@@ -29,6 +29,7 @@ import {
   AlertCircle,
   List,
   Layers,
+  Target,
 } from 'lucide-react';
 import Link from 'next/link';
 import type { Keyword, SearchIntent } from '@/types/keyword.types';
@@ -169,6 +170,13 @@ function KeywordsContent() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <Link
+              href="/keywords/intent"
+              className="inline-flex items-center gap-2 px-4 py-2 border border-purple-600 text-purple-600 rounded-lg text-sm font-medium hover:bg-purple-50 transition-colors"
+            >
+              <Target className="w-4 h-4" />
+              Intent
+            </Link>
             <Link
               href="/keywords/clusters"
               className="inline-flex items-center gap-2 px-4 py-2 border border-blue-600 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors"

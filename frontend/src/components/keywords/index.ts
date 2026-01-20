@@ -10,4 +10,6 @@ export { KeywordFilters } from './KeywordFilters';
 export { KeywordTable } from './KeywordTable';
 export { ClusterKeywordList } from './ClusterKeywordList';
 export { KeywordClusterCard } from './KeywordClusterCard';
+export { IntentBadge, IntentLegend } from './IntentBadge';
+export { IntentDistributionChart, IntentDistributionBar } from './IntentDistributionChart';
 
