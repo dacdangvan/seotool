@@ -1,6 +1,6 @@
 # 🧠 AI SEO TOOL – PROMPT BOOK
 
-**Version:** 1.0
+**Version:** 2.1 – JS-Aware, Browser-Rendered SEO Architecture
 **Purpose:** Single Source of Truth for AI-driven Development
 **Audience:** Developers, AI Coding Assistants (VSCode + Copilot / Cursor)
 
@@ -15,20 +15,23 @@ Project Goals:
 - Automate SEO using AI agents
 - Improve organic traffic, rankings, and content quality
 - Support modern SEO: Entity SEO, Helpful Content, AI Search
+- Analyze pages as rendered in real browsers (JS-aware crawling)
 
 Core Principles:
 - Agent-based, async-first architecture
 - Clean Architecture & separation of concerns
 - Explainable AI decisions (no black-box)
 - SEO safety first (avoid spam, over-optimization)
+- Browser-rendered DOM is the single source of truth for SEO analysis
 
 Tech Stack (default):
-- Backend: Node.js + TypeScript (Fastify)
+- Backend: Node.js 22+ / TypeScript (Fastify)
 - Workers: Python 3.11
 - Frontend: Next.js + TailwindCSS
 - Database: PostgreSQL
 - Vector DB: Pinecone / Weaviate
 - Queue: Redis + BullMQ
+- Browser Rendering: Playwright (Chromium)
 - Optional Graph DB: Neo4j
 
 Rules:
@@ -36,6 +39,7 @@ Rules:
 - Always write testable code
 - Prefer readability over cleverness
 - Production-grade only
+- SEO analysis MUST use rendered DOM, not raw HTML (see Section 8)
 ```
 
 ---
@@ -170,7 +174,7 @@ Write modular, testable, extensible code.
 
 ---
 
-## 4. MODULE 3 – TECHNICAL SEO AGENT
+## 4. MODULE 3 – TECHNICAL SEO AGENT (v0.4)
 
 ```text
 Role:
@@ -178,34 +182,51 @@ You are a senior technical SEO engineer and crawler specialist.
 
 Context:
 This agent audits websites for technical SEO issues.
+CRITICAL: All SEO analysis MUST be based on browser-rendered DOM, not raw HTML.
 
 Responsibilities:
-- Crawl HTML and JS-rendered pages
+- Crawl HTML and JS-rendered pages (see Section 8 for render modes)
+- Automatically detect when JS rendering is required
 - Detect:
   - Indexing issues
   - Canonical problems
   - Duplicate content
   - Meta tag issues
+  - JS-generated SEO elements
 - Measure Core Web Vitals (LCP, CLS, INP)
 - Explain SEO impact of each issue
 - Suggest fixes with code examples
+- Track render_mode per URL (html_only | js_rendered)
 
 Tech Stack:
-- Node.js
-- Playwright
+- Node.js 22+
+- Playwright (Chromium-based rendering)
 - Lighthouse
+- Cheerio (HTML parsing)
 - Fastify (optional API)
+
+Architecture (JS-Aware Crawler):
+- js_render_engine.ts    - Playwright browser rendering
+- render_decider.ts      - Logic to decide if URL needs JS rendering
+- dom_extractor.ts       - Extract SEO data from rendered DOM
+- seo_analyzer.ts        - Analyze SEO and generate issues
+- rendered_crawler.ts    - Main orchestrator
 
 Constraints:
 - Respect robots.txt
 - Rate-limited crawling
 - Rule-based checks (explainable)
+- JS rendering MUST be selectively applied (configurable limits)
+- Browser instances MUST be pooled and reused
 
 Deliverables:
-1. SEOCrawler
-2. TechnicalIssueDetector
-3. ImpactExplanationEngine
-4. FixSuggestionGenerator
+1. SEOCrawler (with JS rendering support)
+2. JSRenderEngine (Playwright-based)
+3. RenderDecider (SPA/JS detection)
+4. DOMExtractor (post-render SEO extraction)
+5. TechnicalIssueDetector
+6. ImpactExplanationEngine
+7. FixSuggestionGenerator
 
 Code must be observable and production-ready.
 ```
@@ -517,6 +538,397 @@ if (!result.canProceed) {
 // Monitor drift
 const measurement = system.driftMonitor.measureDrift(content, profile);
 ```
+
+---
+---
+
+# 2. AUTONOMOUS & DECISION INTELLIGENCE LAYER (v1.0 – v1.7)
+
+This section defines the higher-order intelligence layers that operate ABOVE task-level SEO agents (v0.x).
+
+These layers introduce reasoning, planning, automation control, cost awareness, and portfolio-level optimization.
+
+All components below MUST respect the Core System architecture and NEVER bypass guardrails.
+
+---
+
+## v1.0 – AUTONOMOUS SEO AGENT (META-AGENT)
+
+Purpose:
+- Acts as a decision-making layer above all SEO agents.
+- Translates high-level SEO goals into actionable plans.
+
+Capabilities:
+- Observes outputs from:
+  - Keyword Intelligence Agent (v0.2)
+  - Content Engine (v0.3)
+  - Technical SEO Agent (v0.4)
+  - Entity & Internal Linking Agent (v0.5)
+  - Monitoring & Predictive Analytics (v0.6)
+- Generates SEO Action Plans.
+- Requires human approval before execution.
+
+Constraints:
+- No direct execution.
+- Must explain reasoning and evidence.
+- Deterministic planning structure.
+
+---
+
+## v1.1 – LOW-RISK AUTO-EXECUTION
+
+Purpose:
+- Automatically execute LOW-RISK SEO actions safely.
+
+Allowed Auto-Actions:
+- Meta title / description updates
+- Minor content refresh (≤ 20%)
+- Internal linking (SEO-safe anchors)
+- Basic technical fixes (non-destructive)
+
+Mandatory Guardrails:
+- Rollback snapshot required
+- Audit logging required
+- Policy-based approval only
+
+Forbidden:
+- URL changes
+- Redirects
+- robots.txt / noindex
+- Backlink creation
+
+---
+
+## v1.2 – MULTI-AGENT DEBATE (SEO vs RISK vs BRAND)
+
+Purpose:
+- Prevent biased or one-dimensional decisions.
+
+Agents:
+- SEO Agent: growth-oriented
+- Risk Agent: guideline & penalty protection
+- Brand Agent: voice, UX, trust protection
+
+Rules:
+- Each proposed action MUST be evaluated by all agents.
+- Decisions are based on weighted consensus.
+- Conflicts must be explicitly documented.
+
+Output:
+- APPROVE
+- APPROVE_WITH_MODIFICATIONS
+- REJECT
+
+---
+
+## v1.3 – CONFIDENCE-WEIGHTED AUTO-EXECUTION
+
+Purpose:
+- Control automation level based on confidence score.
+
+Confidence Factors:
+- Data quality & freshness
+- Debate consensus strength
+- Historical success rate
+- Action scope size
+- Policy safety margin
+
+Execution Modes:
+- Confidence < 0.60 → Manual only
+- 0.60–0.79 → Partial auto-execution
+- ≥ 0.80 → Full auto-execution (LOW-RISK only)
+
+Rules:
+- Confidence calculation MUST be explainable.
+- Partial execution MUST limit scope.
+- Rollback is mandatory.
+
+---
+
+## v1.4 – BRAND STYLE LEARNING & GUARDRAIL
+
+Purpose:
+- Preserve brand voice and prevent AI brand drift.
+
+Capabilities:
+- Learn brand style from approved content.
+- Build Brand Style Profile per project.
+- Validate all content actions pre- and post-execution.
+
+Violations:
+- BLOCKING: execution must stop
+- WARNING: execution allowed with flag
+- INFO: monitoring only
+
+Constraints:
+- No creative rewriting.
+- No hallucinated brand rules.
+- Explainable brand decisions only.
+
+---
+
+## v1.5 – SCENARIO SIMULATION (WHAT-IF ANALYSIS)
+
+Purpose:
+- Simulate outcomes BEFORE real execution.
+
+Scenarios:
+- Baseline (do nothing)
+- Proposed action
+- Reduced / delayed variants
+
+Simulated Metrics:
+- Traffic (30/60/90 days)
+- Ranking trend
+- SEO risk
+- Brand consistency
+
+Rules:
+- Always include baseline.
+- No production side effects.
+- No simulation beyond 90 days.
+
+---
+
+## v1.6 – COST-AWARE OPTIMIZATION (ROI / TOKEN / EFFORT)
+
+Purpose:
+- Optimize SEO actions by ROI, not just impact.
+
+Cost Dimensions:
+- LLM token usage
+- Compute cost
+- Engineering / content effort
+- Risk cost
+- Opportunity cost
+
+Decision Rule:
+- No action may be selected without ROI justification.
+- Budget constraints must be respected.
+- Trade-offs must be explicit.
+
+---
+
+## v1.7 – PORTFOLIO OPTIMIZATION (MULTI-DOMAIN / MULTI-PROJECT)
+
+Purpose:
+- Optimize SEO resources across multiple projects/domains.
+
+Capabilities:
+- Aggregate project-level ROI, risk, forecast.
+- Classify projects:
+  - INVEST
+  - MAINTAIN
+  - OPTIMIZE CAREFULLY
+  - OBSERVE
+- Allocate shared resources (tokens, effort).
+
+Rules:
+- Never optimize a project in isolation.
+- Always show cross-project trade-offs.
+- No forced execution across projects.
+
+---
+
+# 3. DECISION HIERARCHY (GLOBAL)
+
+When conflicts arise, decisions MUST follow this priority order:
+
+1. Brand & Legal Guardrails (v1.4)
+2. Risk Policies & Debate Outcomes (v1.1, v1.2)
+3. Portfolio Strategy (v1.7)
+4. Cost-aware Optimization (v1.6)
+5. Scenario Simulation Insights (v1.5)
+6. Autonomous Planning (v1.0)
+7. Task-level Agent Outputs (v0.x)
+
+Lower levels MUST NOT override higher levels.
+
+---
+
+# 4. EXECUTION SAFETY & GOVERNANCE RULES
+
+- No execution without rollback capability.
+- No MEDIUM or HIGH risk action may be auto-executed.
+- All actions must be:
+  - Explainable
+  - Auditable
+  - Reversible
+- Silent or hidden execution is strictly forbidden.
+
+---
+
+# 5. HOW AI CODING ASSISTANTS MUST REASON
+
+When generating or modifying code, AI assistants (Copilot, Cursor, etc.) MUST:
+
+- Treat this document as the system constitution.
+- Prefer deterministic logic over shortcuts.
+- Keep reasoning, planning, and execution separated.
+- Never bypass guardrails for convenience.
+- Assume enterprise-grade production usage.
+
+---
+---
+
+# 8. BROWSER-RENDERED HTML & JS-AWARE CRAWLING (v2.1 Core Feature)
+
+**Status:** ✅ Implemented (MVP)
+**Location:** `backend/src/crawler/js-render/`
+
+This section defines how the crawler MUST analyze pages as rendered in a real browser,
+to reflect what users and Googlebot actually see.
+
+Raw HTML fetching alone is NOT sufficient for modern JavaScript-heavy websites.
+
+**Implementation Files:**
+```
+backend/src/crawler/js-render/
+├── types.ts              # RenderMode, ViewportConfig, ExtractedSeoData
+├── js_render_engine.ts   # Playwright browser rendering
+├── render_decider.ts     # SPA/JS detection logic
+├── dom_extractor.ts      # Extract SEO data from DOM
+├── seo_analyzer.ts       # Analyze SEO and generate issues
+├── rendered_crawler.ts   # Main orchestrator
+└── test_rendered_crawler.ts  # Test script
+```
+
+**Frontend Integration:**
+```
+frontend/src/components/crawl/
+├── RenderModeBadge.tsx   # Badge, Filter, Cell, Header, Stats
+```
+
+---
+
+## 8.1 Core Principle
+
+SEO analysis MUST be based on the final DOM after JavaScript execution, not the initial HTML response.
+
+The crawler must approximate Googlebot’s rendering behavior:
+1. Fetch HTML
+2. Execute JavaScript
+3. Analyze rendered DOM
+
+---
+
+## 8.2 Render Modes
+
+Each crawled page MUST be tagged with one of the following render modes:
+
+- html_only  
+  - Raw HTML fetch
+  - No JavaScript execution
+
+- js_rendered  
+  - Loaded via headless browser
+  - DOM snapshot taken after JS execution
+
+Render mode MUST be stored per URL and exposed to the frontend.
+
+---
+
+## 8.3 JS Render Decision Rules (MANDATORY)
+
+JS rendering MUST be triggered if ANY of the following conditions are met:
+
+- <title> is empty, generic, or placeholder in raw HTML
+- No <h1> present in raw HTML
+- SPA indicators detected:
+  - <div id="root">, <div id="app">
+  - Large bundled JS files
+- SEO signals generated dynamically:
+  - Meta tags
+  - Headings
+  - Internal links
+  - Structured data (JSON-LD)
+- Project configuration forces JS rendering
+
+HTML-only crawling is allowed ONLY when rendered content matches raw HTML.
+
+---
+
+## 8.4 Browser Rendering Requirements
+
+When js_rendered mode is used, the crawler MUST:
+
+- Use Chromium-based rendering (Playwright)
+- Wait for DOM stabilization or network idle
+- Support both mobile and desktop viewports
+- Avoid form interaction or authenticated flows
+- Apply strict timeouts and resource limits
+
+---
+
+## 8.5 SEO Analysis Scope (Post-Render)
+
+All SEO analysis MUST be performed on the rendered DOM:
+
+- Title & meta description
+- H1–H3 hierarchy
+- Canonical & noindex
+- Visible text content length
+- Internal links (<a href>)
+- Structured data (JSON-LD)
+
+Raw HTML may be stored ONLY for debugging or diffing purposes.
+
+---
+
+## 8.6 Performance & Safety Constraints
+
+To prevent abuse and excessive load:
+
+- JS rendering MUST be selectively applied
+- Maximum JS-rendered pages per crawl job is configurable
+- Browser instances MUST be pooled and reused
+- Crawl rate limits and robots.txt rules apply equally to rendered pages
+
+---
+
+## 8.7 Transparency & Debugging (✅ Implemented)
+
+For every crawled URL, the system MUST record:
+
+- render_mode: html_only | js_rendered
+- crawl_timestamp
+- rendering_duration_ms
+
+**Frontend Implementation (Crawl Results Page):**
+
+- ✅ `RenderModeBadge` - Icon + label (FileCode for HTML, Globe for JS)
+- ✅ `RenderModeCell` - Table cell with badge + render time
+- ✅ `RenderModeHeader` - Column header with info tooltip
+- ✅ `RenderModeFilter` - Toggle filter: All | HTML | JS
+- ✅ `RenderModeStats` - Summary: "X HTML (Y%) | Z JS (W%)"
+
+**UI Features:**
+- Display render mode per page ✅
+- Filter pages by render mode ✅
+- Show render time for JS-rendered pages ✅
+- Tooltip explaining HTML-only vs JS-rendered ✅
+
+---
+
+## 8.8 Governance Rules
+
+- No page may be SEO-audited using raw HTML if critical SEO elements are JS-generated
+- No agent may bypass JS rendering rules for convenience
+- Render logic MUST be deterministic and explainable
+
+---
+
+## 8.9 Integration with Other System Layers
+
+Rendered DOM output is the single source of truth for:
+
+- Technical SEO Agent (v0.4)
+- Entity & Internal Linking Agent (v0.5)
+- Core Web Vitals analysis (Lab data)
+- Autonomous Decision Layers (v1.x)
+- Executive & Board Dashboards (v1.8)
+
+Any inconsistency between raw and rendered HTML MUST be detectable and auditable.
 
 ---
 
