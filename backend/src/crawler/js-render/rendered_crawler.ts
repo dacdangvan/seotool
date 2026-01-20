@@ -100,16 +100,29 @@ export class RenderedCrawler {
       }
 
       // Step 3: Render with JS if needed
+      let rawExtraction: ReturnType<DomExtractor['extract']> | undefined;
+      let renderTiming: CrawlPageResult['seoData']['renderTiming'] | undefined;
+      
+      // First, extract from raw HTML (needed for meta_source comparison)
+      rawExtraction = this.domExtractor.extract(rawHtml, finalUrl || url, 'html', 0);
+      
       if (renderMode === 'js_rendered') {
         try {
           const viewport = options.viewport ?? this.config.defaultViewport ?? 'mobile';
           const renderResult = await this.renderEngine.render(url, {
             viewport,
-            timeout: options.timeout ?? this.config.timeout
+            timeout: options.timeout ?? this.config.timeout,
+            seoReadyConfig: {
+              maxWaitTime: 15000,
+              requireTitle: true,
+              requireMetaDescription: false,
+              debug: true
+            }
           });
           
           htmlToAnalyze = renderResult.html;
           renderTime = renderResult.renderTime;
+          renderTiming = renderResult.timing;
         } catch (renderError) {
           // Fallback to raw HTML if rendering fails
           console.warn(`[RenderedCrawler] JS render failed for ${url}, falling back to HTML:`, renderError);
@@ -117,12 +130,16 @@ export class RenderedCrawler {
         }
       }
 
-      // Step 4: Extract SEO data
+      // Step 4: Extract SEO data (pass raw extraction for meta_source comparison)
       const seoData = this.domExtractor.extract(
         htmlToAnalyze,
         finalUrl || url,
         renderMode,
-        renderTime
+        renderTime,
+        {
+          rawExtraction: renderMode === 'js_rendered' ? rawExtraction : undefined,
+          renderTiming
+        }
       );
 
       // Step 5: Analyze SEO

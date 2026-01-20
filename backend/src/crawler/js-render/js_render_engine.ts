@@ -3,6 +3,9 @@
  * 
  * Uses Playwright (Chromium) to render pages with JavaScript execution.
  * Supports mobile/desktop viewports, resource blocking, and browser pooling.
+ * 
+ * IMPORTANT: Uses SEO-ready wait strategy to prevent false negatives
+ * for JS-generated meta tags (per AI_SEO_TOOL_PROMPT_BOOK.md Section 8 & 9).
  */
 
 import { chromium, Browser, BrowserContext, Page } from 'playwright';
@@ -13,8 +16,15 @@ import {
   ViewportConfig,
   VIEWPORT_CONFIGS,
   JsRenderConfig,
-  DEFAULT_JS_RENDER_CONFIG
+  DEFAULT_JS_RENDER_CONFIG,
+  RenderTimingMetrics
 } from './types';
+import { 
+  waitForSeoReady, 
+  SeoReadyResult, 
+  SeoReadyConfig,
+  DEFAULT_SEO_READY_CONFIG 
+} from './seo_ready_waiter';
 
 export class JsRenderEngine {
   private browser: Browser | null = null;
@@ -84,6 +94,9 @@ export class JsRenderEngine {
 
   /**
    * Render a page and return the DOM
+   * 
+   * IMPORTANT: This method now uses SEO-ready wait strategy to ensure
+   * JS-generated meta tags are captured before extraction.
    */
   async render(url: string, options: Partial<RenderOptions> = {}): Promise<RenderedDom> {
     const startTime = Date.now();
@@ -91,10 +104,11 @@ export class JsRenderEngine {
     const renderOptions: RenderOptions = {
       viewport: options.viewport ?? this.config.defaultViewport,
       timeout: options.timeout ?? this.config.timeout,
-      waitUntil: options.waitUntil ?? 'networkidle',
+      waitUntil: options.waitUntil ?? 'domcontentloaded', // Changed: don't rely on networkidle alone
       waitForSelector: options.waitForSelector,
       waitForTimeout: options.waitForTimeout,
-      blockResources: options.blockResources ?? this.config.blockResources
+      blockResources: options.blockResources ?? this.config.blockResources,
+      seoReadyConfig: options.seoReadyConfig ?? {} // New: SEO-ready wait config
     };
 
     // Check render limit
@@ -108,6 +122,13 @@ export class JsRenderEngine {
 
     const context = await this.getContext(renderOptions.viewport);
     const page = await context.newPage();
+    
+    // Timing metrics
+    let timeToDomReady = 0;
+    let timeToNetworkIdle = 0;
+    let timeToSeoReady = 0;
+    let seoReadyTimedOut = false;
+    let seoReadyResult: SeoReadyResult | null = null;
 
     try {
       // Block resources if configured
@@ -115,29 +136,63 @@ export class JsRenderEngine {
         await this.setupResourceBlocking(page, renderOptions.blockResources);
       }
 
-      // Navigate to URL
+      // Step 1: Navigate and wait for DOMContentLoaded
+      console.log(`[JsRenderEngine] Navigating to ${url}`);
       const response = await page.goto(url, {
         timeout: renderOptions.timeout,
-        waitUntil: renderOptions.waitUntil
+        waitUntil: 'domcontentloaded'
       });
 
       if (!response) {
         throw new Error(`Failed to load URL: ${url}`);
       }
+      
+      timeToDomReady = Date.now() - startTime;
+      console.log(`[JsRenderEngine] DOMContentLoaded in ${timeToDomReady}ms`);
 
-      // Wait for additional selector if specified
+      // Step 2: Wait for network to settle (but don't rely solely on this)
+      try {
+        await page.waitForLoadState('networkidle', { 
+          timeout: Math.min(renderOptions.timeout / 2, 10000) 
+        });
+        timeToNetworkIdle = Date.now() - startTime;
+        console.log(`[JsRenderEngine] Network idle in ${timeToNetworkIdle}ms`);
+      } catch {
+        // Network idle timeout is acceptable, continue
+        timeToNetworkIdle = Date.now() - startTime;
+        console.log(`[JsRenderEngine] Network idle timeout, continuing after ${timeToNetworkIdle}ms`);
+      }
+
+      // Step 3: Wait for additional selector if specified
       if (renderOptions.waitForSelector) {
         await page.waitForSelector(renderOptions.waitForSelector, {
-          timeout: renderOptions.timeout / 2
+          timeout: renderOptions.timeout / 3
         });
       }
 
-      // Additional wait time if specified
+      // Step 4: CRITICAL - Wait for SEO-critical elements
+      // This is the key fix for false negative meta description detection
+      console.log(`[JsRenderEngine] Waiting for SEO-critical elements...`);
+      seoReadyResult = await waitForSeoReady(page, {
+        maxWaitTime: renderOptions.seoReadyConfig?.maxWaitTime ?? 15000,
+        pollInterval: renderOptions.seoReadyConfig?.pollInterval ?? 200,
+        requireTitle: true,
+        requireMetaDescription: false, // Don't require - some pages legitimately don't have it
+        requireH1: false,
+        debug: true
+      });
+      
+      timeToSeoReady = Date.now() - startTime;
+      seoReadyTimedOut = seoReadyResult.timedOut;
+      
+      console.log(`[JsRenderEngine] SEO-ready state: title=${seoReadyResult.hasTitle}, meta=${seoReadyResult.hasMetaDescription}, h1=${seoReadyResult.hasH1} (${seoReadyResult.waitTime}ms, timedOut=${seoReadyTimedOut})`);
+
+      // Step 5: Additional wait time if specified
       if (renderOptions.waitForTimeout) {
         await page.waitForTimeout(renderOptions.waitForTimeout);
       }
 
-      // Wait for any remaining network activity
+      // Step 6: Wait for any remaining DOM mutations to settle
       await this.waitForDomStabilization(page);
 
       // Get the final URL (after redirects)
@@ -147,8 +202,20 @@ export class JsRenderEngine {
       const html = await page.content();
 
       this.renderCount++;
-
-      const renderTime = Date.now() - startTime;
+      
+      const totalRenderTime = Date.now() - startTime;
+      
+      // Build timing metrics
+      const timing: RenderTimingMetrics = {
+        timeToDomReady,
+        timeToNetworkIdle,
+        timeToSeoReady,
+        totalRenderTime,
+        seoReadyTimedOut
+      };
+      
+      console.log(`[JsRenderEngine] Render complete for ${url} in ${totalRenderTime}ms`);
+      console.log(`[JsRenderEngine] Timing: DOM=${timeToDomReady}ms, Network=${timeToNetworkIdle}ms, SEO=${timeToSeoReady}ms, Total=${totalRenderTime}ms`);
 
       return {
         html,
@@ -156,8 +223,9 @@ export class JsRenderEngine {
         finalUrl,
         renderMode: 'js_rendered',
         viewport: renderOptions.viewport,
-        renderTime,
-        timestamp: new Date().toISOString()
+        renderTime: totalRenderTime,
+        timestamp: new Date().toISOString(),
+        timing
       };
     } finally {
       await page.close();

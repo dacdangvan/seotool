@@ -3,6 +3,8 @@
  * 
  * Extracts SEO-relevant data from rendered DOM HTML.
  * Works with both raw HTML and JS-rendered HTML.
+ * 
+ * IMPORTANT: Supports meta_source tracking for transparency (Section 9).
  */
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -13,8 +15,20 @@ import {
   ExtractedLink,
   HeadingNode,
   JsonLdData,
-  RenderMode
+  RenderMode,
+  MetaSource,
+  RenderTimingMetrics
 } from './types';
+
+/**
+ * Options for extraction with comparison support
+ */
+export interface ExtractOptions {
+  /** Raw HTML extraction result for comparison */
+  rawExtraction?: Partial<ExtractedSeoData>;
+  /** Render timing metrics */
+  renderTiming?: RenderTimingMetrics;
+}
 
 export class DomExtractor {
   /**
@@ -24,24 +38,37 @@ export class DomExtractor {
     html: string, 
     baseUrl: string, 
     renderMode: RenderMode = 'html',
-    renderTime = 0
+    renderTime = 0,
+    options: ExtractOptions = {}
   ): ExtractedSeoData {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const $: any = cheerio.load(html);
+    
+    const title = this.extractTitle($);
+    const metaDescription = this.extractMetaContent($, 'description');
+    const canonical = this.extractCanonical($);
+    const h1 = this.extractHeadings($, 'h1');
+
+    // Calculate meta sources for transparency
+    const metaSource = this.calculateMetaSources(
+      { title, metaDescription, canonical, h1 },
+      options.rawExtraction,
+      renderMode
+    );
 
     return {
       // Meta tags
-      title: this.extractTitle($),
-      metaDescription: this.extractMetaContent($, 'description'),
+      title,
+      metaDescription,
       metaKeywords: this.extractMetaContent($, 'keywords'),
-      canonical: this.extractCanonical($),
+      canonical,
       robots: this.extractMetaContent($, 'robots'),
       ogTitle: this.extractMetaProperty($, 'og:title'),
       ogDescription: this.extractMetaProperty($, 'og:description'),
       ogImage: this.extractMetaProperty($, 'og:image'),
 
       // Headings
-      h1: this.extractHeadings($, 'h1'),
+      h1,
       h2: this.extractHeadings($, 'h2'),
       h3: this.extractHeadings($, 'h3'),
       headingStructure: this.extractHeadingStructure($),
@@ -64,7 +91,62 @@ export class DomExtractor {
 
       // Render info
       renderMode,
-      renderTime
+      renderTime,
+      
+      // Meta source tracking (Section 9 transparency)
+      metaSource,
+      
+      // Render timing
+      renderTiming: options.renderTiming
+    };
+  }
+  
+  /**
+   * Calculate meta sources for transparency
+   * Determines whether each SEO element came from raw HTML or JS rendering
+   */
+  private calculateMetaSources(
+    current: { 
+      title: string | null; 
+      metaDescription: string | null; 
+      canonical: string | null; 
+      h1: string[];
+    },
+    rawExtraction: Partial<ExtractedSeoData> | undefined,
+    renderMode: RenderMode
+  ): ExtractedSeoData['metaSource'] {
+    // For HTML-only mode, source is always raw_html or not_found
+    if (renderMode === 'html') {
+      return {
+        title: current.title ? 'raw_html' : 'not_found',
+        metaDescription: current.metaDescription ? 'raw_html' : 'not_found',
+        canonical: current.canonical ? 'raw_html' : 'not_found',
+        h1: current.h1.length > 0 ? 'raw_html' : 'not_found'
+      };
+    }
+    
+    // For JS-rendered mode, compare with raw extraction
+    const determineSource = (
+      currentValue: string | string[] | null,
+      rawValue: string | string[] | null | undefined
+    ): MetaSource => {
+      const hasCurrentValue = Array.isArray(currentValue) 
+        ? currentValue.length > 0 
+        : !!currentValue;
+      const hasRawValue = Array.isArray(rawValue)
+        ? rawValue.length > 0
+        : !!rawValue;
+      
+      if (!hasCurrentValue) return 'not_found';
+      if (hasRawValue) return 'raw_html';
+      return 'js_rendered';
+    };
+    
+    return {
+      title: determineSource(current.title, rawExtraction?.title),
+      metaDescription: determineSource(current.metaDescription, rawExtraction?.metaDescription),
+      canonical: determineSource(current.canonical, rawExtraction?.canonical),
+      h1: determineSource(current.h1, rawExtraction?.h1)
     };
   }
 

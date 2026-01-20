@@ -24,6 +24,15 @@ export interface RenderOptions {
   waitForSelector?: string;
   waitForTimeout?: number;
   blockResources?: ('image' | 'stylesheet' | 'font' | 'media')[];
+  /** SEO-ready wait configuration */
+  seoReadyConfig?: {
+    maxWaitTime?: number;
+    pollInterval?: number;
+    requireTitle?: boolean;
+    requireMetaDescription?: boolean;
+    requireH1?: boolean;
+    debug?: boolean;
+  };
 }
 
 export interface RenderDecision {
@@ -72,7 +81,25 @@ export interface RenderedDom {
   viewport: ViewportType;
   renderTime: number; // ms
   timestamp: string;
+  // Enhanced timing metrics
+  timing?: RenderTimingMetrics;
 }
+
+/**
+ * Detailed render timing metrics for debugging and transparency
+ */
+export interface RenderTimingMetrics {
+  timeToDomReady: number;        // DOMContentLoaded event (ms)
+  timeToNetworkIdle: number;     // Network idle state (ms)
+  timeToSeoReady: number;        // SEO elements present (ms)
+  totalRenderTime: number;       // Total from navigation start (ms)
+  seoReadyTimedOut: boolean;     // Whether SEO wait timed out
+}
+
+/**
+ * Source of an SEO element (raw HTML or JS-rendered)
+ */
+export type MetaSource = 'raw_html' | 'js_rendered' | 'not_found';
 
 export interface ExtractedSeoData {
   // Meta tags
@@ -111,6 +138,17 @@ export interface ExtractedSeoData {
   // Render info
   renderMode: RenderMode;
   renderTime: number;
+  
+  // Meta source tracking (Section 9 transparency requirement)
+  metaSource?: {
+    title: MetaSource;
+    metaDescription: MetaSource;
+    canonical: MetaSource;
+    h1: MetaSource;
+  };
+  
+  // Render timing details
+  renderTiming?: RenderTimingMetrics;
 }
 
 export interface HeadingNode {

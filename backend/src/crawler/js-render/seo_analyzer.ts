@@ -83,18 +83,41 @@ export class SeoAnalyzer {
 
   /**
    * Analyze meta description
+   * 
+   * IMPORTANT: Per Section 9, only flag missing meta when:
+   * - raw HTML has none AND
+   * - rendered DOM has none after SEO-ready wait
+   * 
+   * The metaSource field indicates where the meta description came from.
    */
   private analyzeMetaDescription(data: ExtractedSeoData, issues: SeoIssue[]): void {
-    const { metaDescription } = data;
+    const { metaDescription, metaSource } = data;
     const { minLength, maxLength } = SEO_THRESHOLDS.metaDescription;
 
     if (!metaDescription) {
-      issues.push({
-        type: 'missing_meta_description',
-        severity: 'warning',
-        message: 'Page is missing a meta description',
-        recommendation: 'Add a compelling meta description between 120-155 characters'
-      });
+      // Check if this is a JS-rendered page where we waited for SEO elements
+      const source = metaSource?.metaDescription;
+      
+      // Only flag as issue if we're confident it's truly missing
+      // (i.e., not a false negative from early extraction before JS hydration)
+      if (data.renderMode === 'js_rendered' && source === 'not_found') {
+        issues.push({
+          type: 'missing_meta_description',
+          severity: 'warning',
+          message: 'Page is missing a meta description (verified after JS rendering)',
+          details: 'Meta description was not found in raw HTML or after JavaScript execution and SEO-ready wait.',
+          recommendation: 'Add a compelling meta description between 120-155 characters. If using client-side rendering, ensure meta tags are injected early in the hydration process.'
+        });
+      } else if (data.renderMode === 'html') {
+        issues.push({
+          type: 'missing_meta_description',
+          severity: 'warning',
+          message: 'Page is missing a meta description',
+          recommendation: 'Add a compelling meta description between 120-155 characters'
+        });
+      }
+      // If renderMode is js_rendered but source is not 'not_found', 
+      // it means we might have a timing issue - don't flag as error yet
       return;
     }
 

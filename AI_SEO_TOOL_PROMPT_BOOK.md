@@ -1,6 +1,6 @@
 # 🧠 AI SEO TOOL – PROMPT BOOK
 
-**Version:** 2.3 – Diff Report Implementation Complete
+**Version:** 2.4 – SEO-Ready Wait & False Negative Prevention
 **Purpose:** Single Source of Truth for AI-driven Development
 **Audience:** Developers, AI Coding Assistants (VSCode + Copilot / Cursor)
 
@@ -784,11 +784,12 @@ Raw HTML fetching alone is NOT sufficient for modern JavaScript-heavy websites.
 **Implementation Files:**
 ```
 backend/src/crawler/js-render/
-├── types.ts              # RenderMode, ViewportConfig, ExtractedSeoData
-├── js_render_engine.ts   # Playwright browser rendering
+├── types.ts              # RenderMode, ViewportConfig, ExtractedSeoData, MetaSource
+├── js_render_engine.ts   # Playwright browser rendering with SEO-ready wait
+├── seo_ready_waiter.ts   # SEO-ready wait utility (prevents false negatives)
 ├── render_decider.ts     # SPA/JS detection logic
-├── dom_extractor.ts      # Extract SEO data from DOM
-├── seo_analyzer.ts       # Analyze SEO and generate issues
+├── dom_extractor.ts      # Extract SEO data from DOM with meta_source tracking
+├── seo_analyzer.ts       # Analyze SEO and generate issues (false negative aware)
 ├── rendered_crawler.ts   # Main orchestrator
 └── test_rendered_crawler.ts  # Test script
 ```
@@ -893,6 +894,36 @@ For every crawled URL, the system MUST record:
 - render_mode: html_only | js_rendered
 - crawl_timestamp
 - rendering_duration_ms
+- **render_timing** (detailed metrics):
+  - time_to_dom_ready
+  - time_to_network_idle
+  - time_to_seo_ready
+  - total_render_time
+  - seo_ready_timed_out
+- **meta_source** per element:
+  - raw_html (present in initial HTML)
+  - js_rendered (added/changed by JavaScript)
+  - not_found (missing after full render)
+
+**SEO-Ready Wait Strategy (Critical for False Negative Prevention):**
+
+The crawler MUST NOT rely only on `networkidle` or `load` events.
+After `page.goto`:
+
+1. Wait for `DOMContentLoaded`
+2. Wait for `networkidle` (with timeout fallback)
+3. **Explicitly wait for SEO-critical elements:**
+   - `<title>` with non-empty, non-placeholder content
+   - `<meta name="description">` with content (if present)
+4. Use timeout with fallback (max 15 seconds)
+
+Implementation: `seo_ready_waiter.ts`
+
+**False Negative Prevention Rules:**
+
+Only flag meta description as missing when:
+- raw HTML has none AND
+- rendered DOM has none AFTER SEO-ready wait
 
 **Frontend Implementation (Crawl Results Page):**
 
