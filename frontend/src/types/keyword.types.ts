@@ -262,3 +262,33 @@ export interface KeywordListResponse {
   pageSize: number;
   totalPages: number;
 }
+
+// =============================================================================
+// CLUSTER TYPES
+// =============================================================================
+
+export interface KeywordClusterSummary {
+  id: string;
+  name: string;
+  keywordCount: number;
+  totalSearchVolume: number;
+  avgDifficulty: number;
+  primaryIntent: SearchIntent;
+  highOpportunityCount: number;
+  mappedUrlCount: number;
+  unmappedCount: number;
+}
+
+export interface KeywordClusterDetail extends KeywordCluster {
+  description?: string;
+  suggestedTopics?: string[];
+  contentGaps?: string[];
+}
+
+export interface ClusterListResponse {
+  clusters: KeywordClusterDetail[];
+  total: number;
+}
+
+export type ClusterSortField = 'name' | 'keywordCount' | 'totalSearchVolume' | 'avgDifficulty';
+

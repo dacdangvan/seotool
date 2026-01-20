@@ -19,6 +19,8 @@ import type {
   KeywordListParams,
   KeywordListResponse,
   KeywordFilters,
+  KeywordClusterDetail,
+  ClusterListResponse,
 } from '@/types/keyword.types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
@@ -455,5 +457,200 @@ function generateMockKeywordList(params: KeywordListParams): KeywordListResponse
     page: pagination.page,
     pageSize: pagination.pageSize,
     totalPages,
+  };
+}
+
+// =============================================================================
+// KEYWORD CLUSTER API
+// =============================================================================
+
+/**
+ * Fetch keyword clusters for a project
+ */
+export async function fetchKeywordClusters(
+  projectId: string
+): Promise<ClusterListResponse> {
+  if (USE_MOCK) {
+    return generateMockClusters();
+  }
+
+  const response = await fetch(`${API_BASE}/projects/${projectId}/keywords/clusters`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch keyword clusters');
+  }
+  return response.json();
+}
+
+/**
+ * Fetch single cluster detail with all keywords
+ */
+export async function fetchClusterDetail(
+  projectId: string,
+  clusterId: string
+): Promise<KeywordClusterDetail> {
+  if (USE_MOCK) {
+    const { clusters } = generateMockClusters();
+    const cluster = clusters.find(c => c.id === clusterId);
+    if (!cluster) throw new Error('Cluster not found');
+    return cluster;
+  }
+
+  const response = await fetch(`${API_BASE}/projects/${projectId}/keywords/clusters/${clusterId}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch cluster detail');
+  }
+  return response.json();
+}
+
+// =============================================================================
+// MOCK CLUSTER DATA
+// =============================================================================
+
+function generateMockClusters(): ClusterListResponse {
+  const clusters: KeywordClusterDetail[] = [
+    {
+      id: 'cluster-credit-cards',
+      name: 'Thẻ tín dụng',
+      description: 'Từ khóa liên quan đến thẻ tín dụng, so sánh và đăng ký',
+      keywords: [
+        createMockKeyword('mở thẻ tín dụng online', 8100, 35, 'transactional', '/vn/the-tin-dung/dang-ky'),
+        createMockKeyword('so sánh thẻ tín dụng 2024', 7200, 55, 'commercial', '/vn/the-tin-dung/so-sanh'),
+        createMockKeyword('thẻ tín dụng hoàn tiền tốt nhất', 5800, 52, 'commercial', '/vn/the-tin-dung/cashback'),
+        createMockKeyword('thẻ tín dụng miễn phí thường niên', 3600, 45, 'commercial', '/vn/the-tin-dung/mien-phi'),
+        createMockKeyword('thẻ tín dụng là gì', 9500, 65, 'informational', '/vn/kien-thuc/the-tin-dung'),
+        createMockKeyword('hồ sơ mở thẻ tín dụng cần gì', 4600, 42, 'informational', '/vn/the-tin-dung/ho-so'),
+        createMockKeyword('đăng ký thẻ visa', 3800, 38, 'transactional', null),
+      ],
+      totalSearchVolume: 42600,
+      avgDifficulty: 47,
+      primaryIntent: 'commercial',
+      mappedUrls: ['/vn/the-tin-dung', '/vn/the-tin-dung/dang-ky', '/vn/the-tin-dung/cashback'],
+      suggestedTopics: ['Hướng dẫn chọn thẻ tín dụng phù hợp', 'Top 10 thẻ tín dụng 2024', 'So sánh lãi suất thẻ tín dụng'],
+      contentGaps: ['Thẻ tín dụng cho sinh viên', 'Cách tăng hạn mức thẻ tín dụng'],
+    },
+    {
+      id: 'cluster-loans',
+      name: 'Vay tiêu dùng',
+      description: 'Từ khóa về vay tiêu dùng, vay tín chấp và điều kiện vay',
+      keywords: [
+        createMockKeyword('đăng ký vay tiêu dùng', 6600, 42, 'transactional', '/vn/vay-tieu-dung'),
+        createMockKeyword('lãi suất vay tiêu dùng 2024', 4100, 48, 'commercial', '/vn/vay-tieu-dung/lai-suat'),
+        createMockKeyword('điều kiện vay tiêu dùng', 5200, 48, 'informational', '/vn/vay-tieu-dung/dieu-kien'),
+        createMockKeyword('vay tín chấp online', 3200, 45, 'transactional', '/vn/vay-tin-chap'),
+        createMockKeyword('cách tính lãi suất vay', 6800, 58, 'informational', '/vn/kien-thuc/lai-suat'),
+      ],
+      totalSearchVolume: 25900,
+      avgDifficulty: 48,
+      primaryIntent: 'transactional',
+      mappedUrls: ['/vn/vay-tieu-dung', '/vn/vay-tin-chap'],
+      suggestedTopics: ['Hướng dẫn vay tiêu dùng nhanh', 'So sánh lãi suất vay các ngân hàng'],
+      contentGaps: ['Vay tiêu dùng không cần chứng minh thu nhập'],
+    },
+    {
+      id: 'cluster-home-loans',
+      name: 'Vay mua nhà',
+      description: 'Từ khóa về vay mua nhà, vay thế chấp bất động sản',
+      keywords: [
+        createMockKeyword('vay mua nhà trả góp', 4400, 48, 'transactional', '/vn/vay-mua-nha'),
+        createMockKeyword('ngân hàng nào vay mua nhà tốt', 4500, 58, 'commercial', null),
+        createMockKeyword('lãi suất vay mua nhà 2024', 3800, 52, 'commercial', '/vn/vay-mua-nha/lai-suat'),
+        createMockKeyword('điều kiện vay mua nhà', 3200, 45, 'informational', '/vn/vay-mua-nha/dieu-kien'),
+      ],
+      totalSearchVolume: 15900,
+      avgDifficulty: 51,
+      primaryIntent: 'commercial',
+      mappedUrls: ['/vn/vay-mua-nha'],
+      suggestedTopics: ['Kinh nghiệm vay mua nhà lần đầu', 'Cách tính khả năng trả nợ'],
+      contentGaps: ['Vay mua nhà cho người trẻ', 'Thủ tục vay mua nhà chi tiết'],
+    },
+    {
+      id: 'cluster-savings',
+      name: 'Tiết kiệm',
+      description: 'Từ khóa về gửi tiết kiệm, lãi suất tiết kiệm',
+      keywords: [
+        createMockKeyword('gửi tiết kiệm lãi suất cao', 4900, 32, 'transactional', '/vn/tiet-kiem'),
+        createMockKeyword('so sánh lãi suất tiết kiệm', 3200, 42, 'commercial', null),
+        createMockKeyword('tiết kiệm online lãi cao', 2800, 28, 'transactional', '/vn/tiet-kiem/online'),
+        createMockKeyword('kỳ hạn tiết kiệm nào tốt nhất', 1900, 35, 'informational', null),
+      ],
+      totalSearchVolume: 12800,
+      avgDifficulty: 34,
+      primaryIntent: 'transactional',
+      mappedUrls: ['/vn/tiet-kiem', '/vn/tiet-kiem/online'],
+      suggestedTopics: ['Chiến lược tiết kiệm hiệu quả', 'So sánh tiết kiệm vs đầu tư'],
+      contentGaps: ['Tiết kiệm tích lũy cho mục tiêu'],
+    },
+    {
+      id: 'cluster-digital-banking',
+      name: 'Ngân hàng số',
+      description: 'Từ khóa về dịch vụ ngân hàng số, app mobile banking',
+      keywords: [
+        createMockKeyword('VIB online banking', 12000, 15, 'navigational', '/vn/ngan-hang-so'),
+        createMockKeyword('VIB MyVIB', 8500, 12, 'navigational', '/vn/myvib'),
+        createMockKeyword('mở tài khoản ngân hàng online', 5400, 28, 'transactional', '/vn/tai-khoan'),
+        createMockKeyword('chuyển tiền online miễn phí', 3100, 35, 'transactional', null),
+      ],
+      totalSearchVolume: 29000,
+      avgDifficulty: 23,
+      primaryIntent: 'navigational',
+      mappedUrls: ['/vn/ngan-hang-so', '/vn/myvib', '/vn/tai-khoan'],
+      suggestedTopics: ['Hướng dẫn sử dụng MyVIB', 'Tính năng mới của ngân hàng số'],
+      contentGaps: ['So sánh app ngân hàng số'],
+    },
+    {
+      id: 'cluster-financial-knowledge',
+      name: 'Kiến thức tài chính',
+      description: 'Từ khóa về kiến thức tài chính cơ bản, thuật ngữ ngân hàng',
+      keywords: [
+        createMockKeyword('CIC là gì', 3400, 52, 'informational', '/vn/kien-thuc/cic'),
+        createMockKeyword('lãi suất kép là gì', 3800, 55, 'informational', null),
+        createMockKeyword('thẻ ghi nợ khác thẻ tín dụng như thế nào', 2500, 45, 'informational', '/vn/kien-thuc/the-ghi-no'),
+        createMockKeyword('cách nâng hạn mức thẻ tín dụng', 2900, 38, 'informational', null),
+      ],
+      totalSearchVolume: 12600,
+      avgDifficulty: 48,
+      primaryIntent: 'informational',
+      mappedUrls: ['/vn/kien-thuc/cic', '/vn/kien-thuc/the-ghi-no'],
+      suggestedTopics: ['Từ điển thuật ngữ tài chính', 'FAQ về ngân hàng'],
+      contentGaps: ['Hướng dẫn đọc sao kê ngân hàng', 'Cách cải thiện điểm CIC'],
+    },
+  ];
+
+  return {
+    clusters,
+    total: clusters.length,
+  };
+}
+
+function createMockKeyword(
+  keyword: string,
+  searchVolume: number,
+  difficulty: number,
+  intent: SearchIntent,
+  mappedUrl: string | null
+): Keyword {
+  const difficultyLevel = getDifficultyLevel(difficulty);
+  const opportunity = calculateOpportunity(searchVolume, difficulty);
+  const hasRank = Math.random() > 0.4;
+  const currentRank = hasRank ? Math.floor(Math.random() * 30) + 1 : null;
+  const rankChange = hasRank ? Math.floor(Math.random() * 8) - 4 : null;
+
+  return {
+    id: `kw-${keyword.replace(/\s+/g, '-')}`,
+    keyword,
+    searchVolume,
+    difficulty,
+    difficultyLevel,
+    intent,
+    opportunity,
+    currentRank,
+    previousRank: currentRank && rankChange ? currentRank - rankChange : null,
+    rankChange,
+    clusterId: null,
+    clusterName: null,
+    mappedUrl,
+    cpc: parseFloat((Math.random() * 3 + 0.5).toFixed(2)),
+    trend: ['up', 'down', 'stable'][Math.floor(Math.random() * 3)] as 'up' | 'down' | 'stable',
+    lastUpdated: new Date().toISOString(),
   };
 }

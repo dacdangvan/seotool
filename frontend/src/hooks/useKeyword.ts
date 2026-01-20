@@ -10,7 +10,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   fetchKeywordOverview, 
   fetchKeywordKPIs,
-  fetchKeywordList 
+  fetchKeywordList,
+  fetchKeywordClusters,
 } from '@/services/keyword.service';
 import type { 
   KeywordOverviewData, 
@@ -20,6 +21,8 @@ import type {
   KeywordFilters,
   KeywordSortField,
   SortDirection,
+  KeywordClusterDetail,
+  ClusterListResponse,
 } from '@/types/keyword.types';
 
 /**
@@ -229,6 +232,84 @@ export function useKeywords(projectId: string) {
     updatePageSize,
     
     // Refresh
+    refetch: fetchData,
+  };
+}
+
+/**
+ * Hook to fetch keyword clusters
+ */
+export function useKeywordClusters(projectId: string) {
+  const [data, setData] = useState<ClusterListResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [selectedClusterId, setSelectedClusterId] = useState<string | null>(null);
+  const [expandedClusters, setExpandedClusters] = useState<Set<string>>(new Set());
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const result = await fetchKeywordClusters(projectId);
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch clusters'));
+    } finally {
+      setLoading(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Toggle cluster expansion
+  const toggleCluster = useCallback((clusterId: string) => {
+    setExpandedClusters(prev => {
+      const next = new Set(prev);
+      if (next.has(clusterId)) {
+        next.delete(clusterId);
+      } else {
+        next.add(clusterId);
+      }
+      return next;
+    });
+  }, []);
+
+  // Expand all clusters
+  const expandAll = useCallback(() => {
+    if (data?.clusters) {
+      setExpandedClusters(new Set(data.clusters.map(c => c.id)));
+    }
+  }, [data?.clusters]);
+
+  // Collapse all clusters
+  const collapseAll = useCallback(() => {
+    setExpandedClusters(new Set());
+  }, []);
+
+  // Select cluster for content planning
+  const selectCluster = useCallback((clusterId: string | null) => {
+    setSelectedClusterId(clusterId);
+  }, []);
+
+  // Check if cluster is expanded
+  const isExpanded = useCallback((clusterId: string) => {
+    return expandedClusters.has(clusterId);
+  }, [expandedClusters]);
+
+  return {
+    clusters: data?.clusters ?? [],
+    total: data?.total ?? 0,
+    loading,
+    error,
+    selectedClusterId,
+    expandedClusters,
+    toggleCluster,
+    expandAll,
+    collapseAll,
+    selectCluster,
+    isExpanded,
     refetch: fetchData,
   };
 }
