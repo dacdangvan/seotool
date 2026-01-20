@@ -26,8 +26,10 @@ import {
   ArrowUp,
   ArrowDown,
   Minus,
-  AlertCircle
+  AlertCircle,
+  List,
 } from 'lucide-react';
+import Link from 'next/link';
 import type { Keyword, SearchIntent } from '@/types/keyword.types';
 
 // Intent badge colors
@@ -165,14 +167,23 @@ function KeywordsContent() {
               {currentProject ? `Phân tích từ khóa cho ${currentProject.name}` : 'Khám phá và theo dõi từ khóa'}
             </p>
           </div>
-          <button 
-            onClick={() => refetch()}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Làm mới
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/keywords/list"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            >
+              <List className="w-4 h-4" />
+              View All Keywords
+            </Link>
+            <button 
+              onClick={() => refetch()}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              Làm mới
+            </button>
+          </div>
         </div>
 
         {/* Error State */}
@@ -224,11 +235,19 @@ function KeywordsContent() {
         {/* Top Opportunities */}
         <section>
           <div className="bg-white rounded-xl border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Cơ hội từ khóa hàng đầu</h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Từ khóa có volume cao và độ khó thấp - ưu tiên tối ưu
-              </p>
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Cơ hội từ khóa hàng đầu</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Từ khóa có volume cao và độ khó thấp - ưu tiên tối ưu
+                </p>
+              </div>
+              <Link
+                href="/keywords/list?opportunity=high"
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                View all →
+              </Link>
             </div>
             <TopOpportunitiesTable keywords={data?.charts.topOpportunities || []} />
           </div>

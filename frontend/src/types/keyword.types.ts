@@ -229,5 +229,36 @@ export interface KeywordFilters {
   mapped?: 'all' | 'mapped' | 'unmapped';
   search?: string;
   minVolume?: number;
+  maxVolume?: number;
+  minDifficulty?: number;
   maxDifficulty?: number;
+}
+
+export type KeywordSortField = 
+  | 'keyword'
+  | 'searchVolume'
+  | 'difficulty'
+  | 'opportunity'
+  | 'currentRank';
+
+export type SortDirection = 'asc' | 'desc';
+
+export interface KeywordListParams {
+  filters: KeywordFilters;
+  sort: {
+    field: KeywordSortField;
+    direction: SortDirection;
+  };
+  pagination: {
+    page: number;
+    pageSize: number;
+  };
+}
+
+export interface KeywordListResponse {
+  keywords: Keyword[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
