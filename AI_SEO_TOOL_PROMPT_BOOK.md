@@ -1,6 +1,6 @@
 # 🧠 AI SEO TOOL – PROMPT BOOK
 
-**Version:** 2.4 – SEO-Ready Wait & False Negative Prevention
+**Version:** 2.6 – Auto URL Discovery & Full SEO Crawl Pipeline
 **Purpose:** Single Source of Truth for AI-driven Development
 **Audience:** Developers, AI Coding Assistants (VSCode + Copilot / Cursor)
 
@@ -1090,5 +1090,300 @@ The Diff Report feature is implemented across the following files:
   - DiffReportPanel: Expandable diff details panel
   - DiffCategoryBadge: Category status indicator
 - `frontend/src/app/crawl/page.tsx` - Integration with crawl results table
+
+---
+
+# 10. SEO-READY SIGNALS STANDARDIZATION
+
+This section defines how the crawler MUST determine when a page is SEO-ready,
+and which SEO signals are considered valid for analysis.
+
+SEO-ready means the page has finished JavaScript hydration and exposes
+final SEO signals as seen by users and Googlebot.
+
+---
+
+## 10.1 Definition: SEO-Ready State
+
+A page is considered SEO-ready ONLY when all required SEO signals
+are present, stable, and non-placeholder.
+
+SEO analysis MUST NOT run before the SEO-ready state is reached.
+
+---
+
+## 10.2 Mandatory SEO-Ready Signals
+
+The crawler MUST validate the following signals:
+
+### 1. Title
+- `<title>` exists
+- Length ≥ 10 characters
+- Must not be generic or placeholder
+  (e.g. "Home", "Loading", empty)
+
+### 2. Meta Description
+- `<meta name="description">` exists
+- Content length ≥ 50 characters
+- Must not be empty or default text
+
+### 3. H1 Heading
+- At least one visible `<h1>` exists
+- Text length ≥ 5 characters
+- Must not be hidden via CSS
+
+### 4. Canonical
+- `<link rel="canonical">` exists OR
+- Page is explicitly marked as self-canonical
+- Canonical URL must be valid and normalized
+
+---
+
+## 10.3 SEO-Ready Evaluation Rules
+
+SEO-ready is TRUE when:
+
+- Title is valid AND
+- Meta description is valid AND
+- H1 is valid AND
+- Canonical is resolved
+
+If any mandatory signal is missing due to JavaScript rendering delay,
+the crawler MUST wait and re-evaluate.
+
+---
+
+## 10.4 SEO-Ready Wait Strategy (MANDATORY)
+
+The crawler MUST use conditional waits instead of static delays.
+
+Example logic (conceptual):
+
+- Wait for DOMContentLoaded
+- Wait until:
+  - title length ≥ threshold
+  - meta description exists with valid content
+  - at least one visible H1 exists
+  - canonical link is resolved
+- Maximum wait time MUST be configurable (default 15s)
+
+Static sleep (e.g. setTimeout) is forbidden.
+
+---
+
+## 10.5 Signal Validation Rules
+
+Each SEO signal MUST be validated using semantic rules:
+
+### Title
+- Trim whitespace
+- Ignore duplicate whitespace
+- Compare raw HTML vs rendered DOM values
+
+### Meta Description
+- Extract final content attribute
+- Ignore tracking or injected analytics text
+
+### H1
+- Only visible H1 elements count
+- Ignore hidden or aria-hidden headings
+
+### Canonical
+- Normalize URL
+- Remove tracking parameters
+- Detect conflicts (multiple canonicals)
+
+---
+
+## 10.6 Signal Source Attribution
+
+For every SEO signal, the crawler MUST record its source:
+
+- raw_html
+- js_rendered
+
+Example:
+
+```json
+{
+  "title": {
+    "value": "Thẻ tín dụng VIB IvyCard",
+    "source": "js_rendered"
+  }
+}
+
+---
+
+# 11. AUTO URL DISCOVERY & FULL SEO CRAWL PIPELINE
+
+This section defines how the system MUST automatically discover,
+list, and crawl all public URLs of a website per project,
+starting from the homepage.
+
+The goal is to build a complete and reliable URL inventory
+before running any SEO analysis.
+
+---
+
+## 11.1 Core Principle
+
+SEO crawling MUST follow this order:
+
+1. Discover all valid public URLs
+2. Build a canonical URL graph
+3. Crawl each URL with SEO-ready validation
+4. Store and analyze SEO signals
+
+Crawling without a complete URL list is considered PARTIAL and unreliable.
+
+---
+
+## 11.2 URL Discovery Sources (MANDATORY)
+
+The system MUST combine multiple URL sources:
+
+### 1. Homepage Crawl
+- Start from the project root URL
+- Extract all internal links from:
+  - Header
+  - Navigation
+  - Main content
+  - Footer
+
+### 2. Recursive Internal Link Discovery
+- Breadth-first traversal of internal links
+- Stay strictly within the project domain
+- Respect robots.txt rules
+
+### 3. Sitemap Discovery (If Available)
+- Detect sitemap URLs via robots.txt
+- Parse sitemap.xml and nested sitemaps
+- Merge sitemap URLs into URL inventory
+
+### 4. Rendered DOM Link Extraction
+- Extract links from browser-rendered DOM
+- Required for JavaScript-generated navigation
+
+All discovered URLs MUST be normalized and deduplicated.
+
+---
+
+## 11.3 URL Normalization Rules
+
+Before adding to the URL inventory, URLs MUST be normalized:
+
+- Resolve relative URLs
+- Enforce HTTPS
+- Preserve language paths (e.g. /vi/, /en/)
+- Remove tracking parameters (utm_*, fbclid, gclid)
+- Respect canonical URL if available
+
+Over-aggressive normalization is forbidden.
+
+---
+
+## 11.4 URL Inventory States
+
+Each URL MUST be tracked with a lifecycle state:
+
+- DISCOVERED
+- QUEUED_FOR_CRAWL
+- CRAWLED
+- FAILED
+- BLOCKED_BY_POLICY
+
+This enables crawl progress tracking and retry logic.
+
+---
+
+## 11.5 Crawl Scope Governance
+
+To ensure safety and completeness:
+
+- Only public, indexable URLs are allowed
+- Exclude:
+  - Login
+  - Forms
+  - API endpoints
+  - Download-only resources
+- Crawl depth and total URLs MUST be configurable per project
+
+---
+
+## 11.6 Full SEO Crawl Execution
+
+For each URL in the inventory, the crawler MUST:
+
+1. Determine render mode:
+   - html_only
+   - js_rendered
+2. Wait for SEO-ready state (Section 10)
+3. Extract standardized SEO signals:
+   - Title
+   - Meta description
+   - H1–H3
+   - Canonical
+   - Indexability
+4. Collect Core Web Vitals (Lab data, if eligible)
+5. Generate raw HTML vs rendered DOM diff report
+6. Store crawl results with timestamp and render metadata
+
+---
+
+## 11.7 Incremental & Resumable Crawling
+
+The crawl pipeline MUST support:
+
+- Resume after interruption
+- Skip unchanged URLs (optional future enhancement)
+- Re-crawl only failed or updated URLs when triggered
+
+---
+
+## 11.8 Frontend Transparency Requirements
+
+The frontend MUST expose:
+
+### Project Overview
+- Total URLs discovered
+- URLs crawled
+- Crawl coverage percentage
+
+### URL Inventory View
+- Full list of discovered URLs
+- Current crawl state per URL
+- Filter by:
+  - Not crawled
+  - Failed
+  - JS-rendered
+
+### Crawl Progress Indicators
+- Real-time progress bar
+- Clear indication of partial vs full crawl
+
+---
+
+## 11.9 Governance Rules
+
+- SEO analysis MUST NOT run on URLs not in the inventory
+- Crawl completeness MUST be visible to users
+- Autonomous agents MUST consider crawl coverage confidence
+
+---
+
+## 11.10 Integration with Other Layers
+
+The URL inventory and full crawl pipeline are the foundation for:
+
+- Technical SEO Agent (v0.4)
+- Entity & Internal Linking Agent (v0.5)
+- Monitoring & Forecasting (v0.6)
+- Autonomous SEO Agent (v1.x)
+- Portfolio Optimization (v1.7)
+- Executive / Board Dashboard (v1.8)
+
+No higher-level decision may ignore crawl completeness.
+
+---
 
 # END OF FILE

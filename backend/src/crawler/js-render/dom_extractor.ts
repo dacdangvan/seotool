@@ -46,7 +46,7 @@ export class DomExtractor {
     
     const title = this.extractTitle($);
     const metaDescription = this.extractMetaContent($, 'description');
-    const canonical = this.extractCanonical($);
+    const canonical = this.extractCanonical($, baseUrl); // Pass baseUrl for § 10.5 normalization
     const h1 = this.extractHeadings($, 'h1');
 
     // Calculate meta sources for transparency
@@ -178,12 +178,29 @@ export class DomExtractor {
   }
 
   /**
-   * Extract canonical URL
+   * Extract canonical URL per § 10.5 Signal Validation Rules:
+   * - Normalize URL
+   * - Remove tracking parameters
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private extractCanonical($: any): string | null {
+  private extractCanonical($: any, pageUrl?: string): string | null {
     const href = $('link[rel="canonical"]').attr('href');
-    return href?.trim() || null;
+    if (!href?.trim()) return null;
+    
+    try {
+      // § 10.5: Normalize URL
+      const baseUrl = pageUrl || 'https://example.com';
+      const canonicalUrl = new URL(href.trim(), baseUrl);
+      
+      // § 10.5: Remove common tracking parameters
+      const trackingParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'fbclid', 'gclid'];
+      trackingParams.forEach(param => canonicalUrl.searchParams.delete(param));
+      
+      return canonicalUrl.href;
+    } catch {
+      // Return original if URL parsing fails
+      return href.trim();
+    }
   }
 
   /**

@@ -170,22 +170,25 @@ export class JsRenderEngine {
         });
       }
 
-      // Step 4: CRITICAL - Wait for SEO-critical elements
+      // Step 4: CRITICAL - Wait for SEO-critical elements per § 10
       // This is the key fix for false negative meta description detection
-      console.log(`[JsRenderEngine] Waiting for SEO-critical elements...`);
+      console.log(`[JsRenderEngine] Waiting for SEO-critical elements per §10...`);
       seoReadyResult = await waitForSeoReady(page, {
         maxWaitTime: renderOptions.seoReadyConfig?.maxWaitTime ?? 15000,
         pollInterval: renderOptions.seoReadyConfig?.pollInterval ?? 200,
-        requireTitle: true,
-        requireMetaDescription: false, // Don't require - some pages legitimately don't have it
-        requireH1: false,
+        // § 10.2 Mandatory SEO-Ready Signals:
+        requireTitle: renderOptions.seoReadyConfig?.requireTitle ?? true,
+        requireMetaDescription: renderOptions.seoReadyConfig?.requireMetaDescription ?? false, // Configurable - some pages legitimately don't have it
+        requireH1: renderOptions.seoReadyConfig?.requireH1 ?? false,
+        requireCanonical: renderOptions.seoReadyConfig?.requireCanonical ?? false, // Configurable - many pages don't have explicit canonical
+        pageUrl: url, // For § 10.2.4 self-canonical check
         debug: true
       });
       
       timeToSeoReady = Date.now() - startTime;
       seoReadyTimedOut = seoReadyResult.timedOut;
       
-      console.log(`[JsRenderEngine] SEO-ready state: title=${seoReadyResult.hasTitle}, meta=${seoReadyResult.hasMetaDescription}, h1=${seoReadyResult.hasH1} (${seoReadyResult.waitTime}ms, timedOut=${seoReadyTimedOut})`);
+      console.log(`[JsRenderEngine] §10 SEO-ready state: title=${seoReadyResult.hasTitle}, meta=${seoReadyResult.hasMetaDescription}, h1=${seoReadyResult.hasH1}, canonical=${seoReadyResult.hasCanonical} (${seoReadyResult.waitTime}ms, timedOut=${seoReadyTimedOut})`);
 
       // Step 5: Additional wait time if specified
       if (renderOptions.waitForTimeout) {

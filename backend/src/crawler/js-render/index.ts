@@ -3,7 +3,7 @@
  * 
  * Browser-rendered HTML crawling for SPA/JS-heavy websites
  * Includes Section 9 Diff Report functionality
- * Includes SEO-ready wait strategy for false negative prevention
+ * Includes Section 10 SEO-Ready Signals Standardization
  */
 
 // Types
@@ -16,17 +16,22 @@ export { DomExtractor } from './dom_extractor';
 export type { ExtractOptions } from './dom_extractor';
 export { SeoAnalyzer } from './seo_analyzer';
 
-// SEO-ready wait utility (prevents false negatives for JS-rendered meta tags)
+// Section 10: SEO-ready wait utility (prevents false negatives for JS-rendered meta tags)
 export { 
   waitForSeoReady, 
   waitForSeoElement, 
   navigateAndWaitForSeo,
-  DEFAULT_SEO_READY_CONFIG 
+  DEFAULT_SEO_READY_CONFIG,
+  SEO_SIGNAL_THRESHOLDS,
+  TITLE_PLACEHOLDER_PATTERNS,
+  META_DESC_PLACEHOLDER_PATTERNS
 } from './seo_ready_waiter';
 export type { 
   SeoReadyResult, 
   SeoReadyConfig,
-  RenderTiming 
+  RenderTiming,
+  SeoValidationDetails,
+  SignalValidation
 } from './seo_ready_waiter';
 
 // Section 9: Diff Report

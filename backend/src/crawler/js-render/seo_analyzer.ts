@@ -143,11 +143,11 @@ export class SeoAnalyzer {
   }
 
   /**
-   * Analyze heading structure
+   * Analyze heading structure per § 10.2.3
    */
   private analyzeHeadings(data: ExtractedSeoData, issues: SeoIssue[]): void {
     const { h1, h2, headingStructure } = data;
-    const { maxLength } = SEO_THRESHOLDS.h1;
+    const { minLength, maxLength } = SEO_THRESHOLDS.h1;
 
     // Check H1
     if (h1.length === 0) {
@@ -164,6 +164,15 @@ export class SeoAnalyzer {
         message: `Page has ${h1.length} H1 headings`,
         details: `H1s found: ${h1.map(h => `"${h}"`).join(', ')}`,
         recommendation: 'Use only one H1 heading per page'
+      });
+    } else if (h1[0] && h1[0].length < minLength) {
+      // § 10.2.3: H1 must be ≥5 chars
+      issues.push({
+        type: 'h1_too_short',
+        severity: 'warning',
+        message: `H1 is too short (${h1[0].length} characters)`,
+        details: `Current H1: "${h1[0]}"`,
+        recommendation: `H1 should be at least ${minLength} characters`
       });
     } else if (h1[0] && h1[0].length > maxLength) {
       issues.push({

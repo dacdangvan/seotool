@@ -24,13 +24,20 @@ export interface RenderOptions {
   waitForSelector?: string;
   waitForTimeout?: number;
   blockResources?: ('image' | 'stylesheet' | 'font' | 'media')[];
-  /** SEO-ready wait configuration */
+  /** SEO-ready wait configuration per § 10.4 */
   seoReadyConfig?: {
     maxWaitTime?: number;
     pollInterval?: number;
+    /** § 10.2.1: Require valid title */
     requireTitle?: boolean;
+    /** § 10.2.2: Require valid meta description */
     requireMetaDescription?: boolean;
+    /** § 10.2.3: Require valid H1 */
     requireH1?: boolean;
+    /** § 10.2.4: Require canonical (or self-canonical) */
+    requireCanonical?: boolean;
+    /** Page URL for self-canonical check */
+    pageUrl?: string;
     debug?: boolean;
   };
 }
@@ -139,7 +146,7 @@ export interface ExtractedSeoData {
   renderMode: RenderMode;
   renderTime: number;
   
-  // Meta source tracking (Section 9 transparency requirement)
+  // Meta source tracking per § 10.6 Signal Source Attribution
   metaSource?: {
     title: MetaSource;
     metaDescription: MetaSource;
@@ -198,6 +205,7 @@ export type SeoIssueType =
   | 'meta_description_too_long'
   | 'missing_h1'
   | 'multiple_h1'
+  | 'h1_too_short'      // § 10.2.3: H1 must be ≥5 chars
   | 'h1_too_long'
   | 'heading_hierarchy_broken'
   | 'missing_canonical'
@@ -269,19 +277,30 @@ export const VIEWPORT_CONFIGS: Record<ViewportType, ViewportConfig> = {
   }
 };
 
-// SEO thresholds
+/**
+ * SEO thresholds per § 10.2 Mandatory SEO-Ready Signals
+ * 
+ * Note: These are ANALYSIS thresholds for quality assessment.
+ * For SEO-ready VALIDATION thresholds, see seo_ready_waiter.ts SEO_SIGNAL_THRESHOLDS
+ */
 export const SEO_THRESHOLDS = {
   title: {
-    minLength: 30,
+    // § 10.2.1: SEO-ready requires ≥10 chars
+    // Analysis: Google displays ~50-60 chars
+    minLength: 10,           // § 10.2.1 minimum (for SEO-ready)
     maxLength: 60,
     optimalLength: { min: 50, max: 60 }
   },
   metaDescription: {
-    minLength: 70,
+    // § 10.2.2: SEO-ready requires ≥50 chars
+    // Analysis: Google displays ~155-160 chars
+    minLength: 50,           // § 10.2.2 minimum (for SEO-ready)
     maxLength: 160,
     optimalLength: { min: 120, max: 155 }
   },
   h1: {
+    // § 10.2.3: SEO-ready requires ≥5 chars
+    minLength: 5,            // § 10.2.3 minimum (for SEO-ready)
     maxLength: 70
   },
   content: {
