@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AreaChart,
   Area,
@@ -29,6 +29,12 @@ type TimeRange = '30d' | '60d' | '90d';
 
 export function ForecastChart({ data }: ForecastChartProps) {
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Fix SSR: Recharts requires browser environment
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   
   const rangeConfig = {
     '30d': { days: 30, forecast: data.forecast30d },
@@ -129,6 +135,11 @@ export function ForecastChart({ data }: ForecastChartProps) {
 
       {/* Chart */}
       <div className="h-64">
+        {!isMounted ? (
+          <div className="w-full h-full bg-gray-100 animate-pulse rounded-lg flex items-center justify-center">
+            <span className="text-gray-400">Loading chart...</span>
+          </div>
+        ) : (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={formattedChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>
@@ -206,6 +217,7 @@ export function ForecastChart({ data }: ForecastChartProps) {
             />
           </AreaChart>
         </ResponsiveContainer>
+        )}
       </div>
 
       {/* Disclaimer */}
