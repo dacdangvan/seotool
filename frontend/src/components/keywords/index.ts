@@ -34,6 +34,21 @@ export {
 export {
   KeywordMappingTable,
 } from './KeywordMappingTable';
+export {
+  KeywordActionCard,
+  KeywordActionList,
+  ActionSummary,
+  PriorityBadge,
+  StatusBadge,
+  ConfidenceBadge,
+  RiskBadge,
+  ImpactPreview,
+  ACTION_TYPE_CONFIG,
+  PRIORITY_CONFIG,
+  STATUS_CONFIG,
+  CONFIDENCE_CONFIG,
+  RISK_CONFIG,
+} from './KeywordActionCard';
 export type {
   MappingStatus,
   KeywordMapping,
@@ -44,4 +59,13 @@ export type {
   MappingSortField,
   MappingFilterStatus,
 } from './KeywordMappingTable';
+export type {
+  KeywordAction,
+  ActionType,
+  ActionPriority,
+  ActionStatus,
+  ConfidenceLevel,
+  ExpectedImpact,
+  ActionTypeConfig,
+} from './KeywordActionCard';
 
