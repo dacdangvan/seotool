@@ -61,3 +61,36 @@ export type {
   KeywordFilterOption,
   ContentPlanningStats,
 } from './ContentPlanningView';
+
+// Content Brief Generator – Per Section 13
+export {
+  ContentBriefDisplay,
+  BriefGeneratorForm,
+  RiskBadge,
+  generateContentBrief,
+} from './ContentBriefGenerator';
+
+export type {
+  FullContentBrief,
+  BriefGenerationInput,
+  RiskLevel,
+  ToneStyle,
+  CTAStyle,
+} from './ContentBriefGenerator';
+
+// AI Content Writer – Per Section 14
+export {
+  AIContentWriter,
+  MASTER_PROMPT,
+  buildGenerationPrompt,
+  validateBriefForGeneration,
+} from './AIContentWriter';
+
+export type {
+  ContentGenerationMode,
+  GenerationStatus,
+  ContentLanguage,
+  ContentGenerationInput,
+  BriefValidationResult,
+  GeneratedContent,
+} from './AIContentWriter';

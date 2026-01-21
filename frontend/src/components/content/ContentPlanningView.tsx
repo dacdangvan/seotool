@@ -12,7 +12,7 @@
  * Per AI_SEO_TOOL_PROMPT_BOOK.md Section 12 – Keyword Research ↔ Content Engine Integration
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { cn, formatNumber, formatCompact, formatPercent } from '@/lib/utils';
 import type { SearchIntent, OpportunityLevel, Keyword } from '@/types/keyword.types';
 import { SEARCH_INTENT_CONFIG, OPPORTUNITY_CONFIG } from '@/types/keyword.types';
@@ -62,7 +62,7 @@ import {
   Layers,
   GitBranch,
   BarChart3,
-  PieChart,
+  PieChart as PieChartIcon,
   ArrowRight,
   RefreshCw,
 } from 'lucide-react';
@@ -416,6 +416,12 @@ interface StatusDistributionChartProps {
 }
 
 function StatusDistributionChart({ data, className }: StatusDistributionChartProps) {
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const chartData = (Object.entries(data) as [BriefStatus, number][])
     .filter(([_, count]) => count > 0)
     .map(([status, count]) => ({
@@ -432,6 +438,14 @@ function StatusDistributionChart({ data, className }: StatusDistributionChartPro
     return (
       <div className={cn('flex items-center justify-center h-32 text-gray-500 text-sm', className)}>
         No briefs created yet
+      </div>
+    );
+  }
+
+  if (!isMounted) {
+    return (
+      <div className={cn('h-48 flex items-center justify-center', className)}>
+        <div className="animate-pulse bg-gray-200 rounded-full w-24 h-24" />
       </div>
     );
   }

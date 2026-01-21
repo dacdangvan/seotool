@@ -1,6 +1,6 @@
 # 🧠 AI SEO TOOL – PROMPT BOOK
 
-**Version:** 2.7 – Keyword-driven Content Engine Integration
+**Version:** 2.9 – Brief-driven AI Content Generation
 **Purpose:** Single Source of Truth for AI-driven Development
 **Audience:** Developers, AI Coding Assistants (VSCode + Copilot / Cursor)
 
@@ -1553,5 +1553,275 @@ This integration feeds and depends on:
 No content decision may bypass keyword intelligence.
 
 ---
+---
+
+# 13. AUTO CONTENT BRIEF GENERATION
+
+This section defines how the system MUST automatically generate
+a detailed, structured Content Brief before any content creation or optimization.
+
+The Content Brief is the SINGLE SOURCE OF TRUTH
+for AI content generation and human editorial approval.
+
+---
+
+## 13.1 Core Principle
+
+No content may be generated, optimized, or suggested
+without an explicit Content Brief.
+
+Content Briefs MUST be:
+- Keyword-driven
+- Intent-aligned
+- Brand-safe
+- SEO-ready
+- Explainable
+
+---
+
+## 13.2 Inputs for Content Brief Generation
+
+A Content Brief MUST be generated using the following inputs:
+
+### 1. Keyword Intelligence
+- Primary keyword
+- Secondary keywords
+- Keyword cluster/topic
+- Search volume & difficulty
+- Opportunity score
+- Search intent
+
+### 2. URL Inventory & Crawl Data
+- Existing pages targeting similar keywords
+- Crawl coverage & indexability
+- JS dependency risk
+- Core Web Vitals (if available)
+
+### 3. Brand & Governance
+- Brand tone & style rules
+- Forbidden claims & language
+- Compliance constraints (banking / finance)
+
+### 4. Strategy Context
+- Content mode:
+  - CREATE (new page)
+  - OPTIMIZE (existing page)
+  - ASSIST (partial enhancement)
+- Target audience (if available)
+- Business priority level
+
+---
+
+## 13.3 Content Brief Structure (MANDATORY)
+
+Each Content Brief MUST include the following sections:
+
+### A. Overview
+- Content objective
+- Target audience
+- Content type (article, landing page, FAQ, product page)
+- Content mode (create / optimize / assist)
+
+### B. SEO Targeting
+- Primary keyword
+- Secondary keywords
+- Related entities
+- Search intent classification
+- Target URL (existing or new)
+
+### C. Competitive Context
+- Existing pages (internal) covering this topic
+- Cannibalization risk (LOW / MEDIUM / HIGH)
+- Required differentiation angle
+
+### D. Recommended Structure
+- Suggested H1
+- H2–H3 outline
+- Mandatory sections
+- Optional sections
+- FAQ suggestions (if intent supports)
+
+### E. Internal Linking Plan
+- Required internal links (from URL inventory)
+- Anchor text guidance
+- Links to avoid (to prevent cannibalization)
+
+### F. Content Requirements
+- Recommended word count range
+- Reading level
+- Tone & formality
+- CTA style (soft / neutral / transactional)
+
+### G. SEO & Technical Constraints
+- Must-pass SEO-ready signals
+- Meta title guidance
+- Meta description guidance
+- Structured data requirements (if any)
+
+### H. Risks & Warnings
+- Brand risk
+- Compliance risk
+- JS dependency risk
+- CWV risk
+
+### I. Success Metrics
+- Primary KPI (ranking, traffic, conversion)
+- Secondary KPIs
+- Expected time-to-impact
+
+---
+
+## 13.4 Brief Generation Rules
+
+- Briefs MUST be deterministic and repeatable
+- Briefs MUST NOT contain creative prose
+- Briefs MUST NOT auto-generate final content
+- All recommendations MUST be explainable
+
+---
+
+## 13.5 Brief Output Schema
+
+Each Content Brief MUST conform to the following schema:
+
+```json
+{
+  "brief_id": "uuid",
+  "project_id": "proj_123",
+  "content_mode": "CREATE",
+  "objective": "Rank for transactional credit card keyword",
+  "primary_keyword": "thẻ tín dụng VIB IvyCard",
+  "secondary_keywords": ["thẻ tín dụng ưu đãi", "vib ivycard"],
+  "search_intent": "Transactional",
+  "target_url": "/vn/the-tin-dung/vib-ivycard",
+  "outline": {
+    "h1": "Thẻ tín dụng VIB IvyCard – Ưu đãi & quyền lợi",
+    "h2": [
+      "Quyền lợi chính",
+      "Điều kiện & phí",
+      "So sánh với thẻ khác",
+      "Câu hỏi thường gặp"
+    ]
+  },
+  "internal_links": [
+    {
+      "url": "/vn/the-tin-dung",
+      "anchor_guidance": "thẻ tín dụng VIB"
+    }
+  ],
+  "constraints": {
+    "tone": "neutral_expert",
+    "forbidden_claims": ["cam kết lợi nhuận"],
+    "word_count_range": "1200–1600"
+  },
+  "risks": {
+    "cannibalization": "LOW",
+    "brand": "LOW",
+    "technical": "MEDIUM"
+  },
+  "success_metrics": {
+    "primary": "Top 10 ranking",
+    "secondary": "Organic traffic growth"
+  }
+}
+
+---
+
+# 14. AI CONTENT GENERATION – BRIEF-DRIVEN PROMPT
+
+This section defines the mandatory prompt and rules for AI-generated content
+based strictly on an approved Content Brief.
+
+AI is a content executor, NOT a strategist.
+
+---
+
+## 14.1 Core Principle
+
+AI MUST generate content ONLY from an approved Content Brief.
+
+AI MUST NOT:
+- Invent keywords
+- Change search intent
+- Add claims not present in the brief
+- Override brand or compliance constraints
+
+---
+
+## 14.2 Content Generation Modes
+
+AI MUST support the following modes:
+
+### CREATE
+- Generate a full new content draft
+- Follow outline exactly
+
+### OPTIMIZE
+- Improve existing content
+- Preserve original meaning and structure
+- Enhance coverage and SEO alignment
+
+### ASSIST
+- Generate specific sections only (FAQ, intro, conclusion)
+
+Mode is provided by the Content Brief.
+
+---
+
+## 14.3 INPUT FORMAT (MANDATORY)
+
+AI input MUST include:
+
+- Approved Content Brief (JSON)
+- Content mode
+- Target language
+- Optional existing content (for OPTIMIZE / ASSIST)
+
+AI MUST NOT proceed if Content Brief is missing or unapproved.
+
+---
+
+## 14.4 MASTER PROMPT – AI CONTENT WRITER
+
+### 🔥 COPY PROMPT BELOW (USE AS SYSTEM / DEVELOPER PROMPT)
+
+```text
+You are an AI Content Writer for an enterprise SEO platform.
+
+Your task is to generate content STRICTLY based on the provided Content Brief.
+
+RULES (MANDATORY):
+- Follow the Content Brief exactly.
+- Do NOT add new keywords or topics.
+- Do NOT change search intent.
+- Do NOT make absolute or promotional claims.
+- Respect brand tone, style, and forbidden language.
+- Use clear, natural, human-like language.
+- SEO optimization must be subtle and non-spammy.
+- Do NOT mention SEO, keywords, or optimization explicitly in the content.
+- Output ONLY the content, no explanation.
+
+CONTENT REQUIREMENTS:
+- Use the suggested outline (H1, H2, H3).
+- Include primary keyword naturally in:
+  - H1 or opening paragraph
+- Include secondary keywords only where relevant.
+- Follow the recommended word count range.
+- Ensure readability and logical flow.
+- Maintain factual, neutral-expert tone.
+
+OUTPUT FORMAT:
+- Markdown
+- Use proper headings (##, ###)
+- No emojis
+- No promotional hype
+- No placeholders
+
+FAILURE CONDITIONS:
+- If any required brief field is missing or unclear, STOP and request clarification.
+- If intent or constraints conflict, STOP and flag an error.
+
+BEGIN CONTENT GENERATION NOW USING THE PROVIDED CONTENT BRIEF.
+
 
 # END OF FILE

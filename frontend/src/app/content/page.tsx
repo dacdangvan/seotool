@@ -167,10 +167,26 @@ function ContentPageContent() {
           </div>
           <div className="flex items-center gap-3">
             <Link
+              href="/content/generate"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors shadow-sm"
+            >
+              <Sparkles className="w-4 h-4" />
+              AI Content Writer
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              href="/content/brief"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 rounded-lg hover:from-purple-100 hover:to-pink-100 transition-colors border border-purple-200"
+            >
+              <Target className="w-4 h-4" />
+              Brief Generator
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
               href="/content/planning"
               className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 rounded-lg hover:from-blue-100 hover:to-purple-100 transition-colors border border-blue-200"
             >
-              <Sparkles className="w-4 h-4" />
+              <Target className="w-4 h-4" />
               Content Planning
               <ArrowRight className="w-4 h-4" />
             </Link>
