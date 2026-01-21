@@ -123,8 +123,8 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
 
       // Auto-select project if none selected
       if (!state.currentProject && projects.length > 0) {
-        // Check localStorage for last selected project
-        const lastProjectId = localStorage.getItem('currentProjectId');
+        // Check localStorage for last selected project (client-side only)
+        const lastProjectId = typeof window !== 'undefined' ? localStorage.getItem('currentProjectId') : null;
         const lastProject = projects.find((p: Project) => p.id === lastProjectId);
         
         // Default to VIB Main Website (www.vib.com.vn) if no last project
@@ -144,10 +144,12 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
   // Set current project
   const setCurrentProject = useCallback((project: Project | null) => {
     dispatch({ type: 'SET_CURRENT_PROJECT', payload: project });
-    if (project) {
-      localStorage.setItem('currentProjectId', project.id);
-    } else {
-      localStorage.removeItem('currentProjectId');
+    if (typeof window !== 'undefined') {
+      if (project) {
+        localStorage.setItem('currentProjectId', project.id);
+      } else {
+        localStorage.removeItem('currentProjectId');
+      }
     }
   }, []);
 

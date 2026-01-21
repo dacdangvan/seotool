@@ -6,7 +6,7 @@
  * v0.7 - Global authentication state management
  */
 
-import React, { createContext, useContext, useReducer, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useState, ReactNode, useCallback } from 'react';
 import { User, UserRole, AuthState, LoginCredentials, RolePermissions, Permission } from '@/types/auth';
 import { authService } from '@/services/auth.service';
 
@@ -74,14 +74,22 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  const [isClient, setIsClient] = useState(false);
+
+  // Check if we're on client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Initialize auth state from storage
   useEffect(() => {
+    if (!isClient) return;
+
     const initAuth = async () => {
       dispatch({ type: 'AUTH_INIT' });
 
       try {
-        const stored = localStorage.getItem('auth');
+        const stored = typeof window !== 'undefined' ? localStorage.getItem('auth') : null;
         if (stored) {
           const { user, token, expiresAt } = JSON.parse(stored);
           
@@ -120,7 +128,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     initAuth();
-  }, []);
+  }, [isClient]);
 
   // Login function
   const login = useCallback(async (credentials: LoginCredentials) => {
@@ -129,12 +137,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const response = await authService.login(credentials);
       
-      // Store in localStorage
-      localStorage.setItem('auth', JSON.stringify({
-        user: response.user,
-        token: response.token,
-        expiresAt: response.expiresAt,
-      }));
+      // Store in localStorage (client-side only)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth', JSON.stringify({
+          user: response.user,
+          token: response.token,
+          expiresAt: response.expiresAt,
+        }));
+      }
 
       dispatch({ type: 'AUTH_SUCCESS', payload: { user: response.user, token: response.token } });
     } catch (error) {
@@ -145,7 +155,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Logout function
   const logout = useCallback(() => {
-    localStorage.removeItem('auth');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth');
+    }
     dispatch({ type: 'AUTH_LOGOUT' });
   }, []);
 
