@@ -35,6 +35,17 @@ export function ForecastChart({ data }: ForecastChartProps) {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Defensive check for data
+  if (!data || !data.dailyForecast || !data.forecast30d) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="h-64 flex items-center justify-center text-gray-500">
+          No forecast data available
+        </div>
+      </div>
+    );
+  }
   
   const rangeConfig = {
     '30d': { days: 30, forecast: data.forecast30d },

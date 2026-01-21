@@ -134,6 +134,17 @@ function AlertCard({ alert }: AlertCardProps) {
 
 export function SEOHealthPanel({ data }: SEOHealthPanelProps) {
   const [showAllAlerts, setShowAllAlerts] = useState(false);
+
+  // Defensive check for data
+  if (!data || !data.overall || !data.technical || !data.activeAlerts) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="h-48 flex items-center justify-center text-gray-500">
+          No health data available
+        </div>
+      </div>
+    );
+  }
   
   const displayedAlerts = showAllAlerts 
     ? data.activeAlerts 
