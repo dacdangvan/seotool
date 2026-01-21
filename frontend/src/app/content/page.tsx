@@ -3,10 +3,13 @@
 /**
  * Content Management Page
  * 
- * v0.7 - SEO Content CRUD with status workflow
+ * v0.8 - SEO Content CRUD with status workflow + Planning integration
+ * 
+ * Added Section 12 integration link to Content Planning
  */
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useProject } from '@/context/ProjectContext';
 import { RoleGuard, useCanAccess } from '@/components/RoleGuard';
 import { Sidebar } from '@/components/Sidebar';
@@ -24,6 +27,9 @@ import {
   CheckCircle,
   Send,
   AlertCircle,
+  Sparkles,
+  Target,
+  ArrowRight,
 } from 'lucide-react';
 
 // Mock content data
@@ -159,13 +165,23 @@ function ContentPageContent() {
               {currentProject ? `Managing content for ${currentProject.name}` : 'Manage your SEO content'}
             </p>
           </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            New Content
-          </button>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/content/planning"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 rounded-lg hover:from-blue-100 hover:to-purple-100 transition-colors border border-blue-200"
+            >
+              <Sparkles className="w-4 h-4" />
+              Content Planning
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              New Content
+            </button>
+          </div>
         </div>
 
         {/* Search and Filter */}

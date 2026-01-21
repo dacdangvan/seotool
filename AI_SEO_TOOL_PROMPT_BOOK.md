@@ -1,6 +1,6 @@
 # 🧠 AI SEO TOOL – PROMPT BOOK
 
-**Version:** 2.6 – Auto URL Discovery & Full SEO Crawl Pipeline
+**Version:** 2.7 – Keyword-driven Content Engine Integration
 **Purpose:** Single Source of Truth for AI-driven Development
 **Audience:** Developers, AI Coding Assistants (VSCode + Copilot / Cursor)
 
@@ -1383,6 +1383,174 @@ The URL inventory and full crawl pipeline are the foundation for:
 - Executive / Board Dashboard (v1.8)
 
 No higher-level decision may ignore crawl completeness.
+
+---
+
+---
+
+# 12. KEYWORD RESEARCH ↔ CONTENT ENGINE INTEGRATION
+
+This section defines how Keyword Research outputs MUST be directly connected
+to the Content Engine, enabling data-driven content creation, optimization,
+and governance.
+
+The goal is to ensure that every piece of content is:
+- Keyword-driven
+- Intent-aligned
+- Non-cannibalizing
+- Measurable
+
+---
+
+## 12.1 Core Principle
+
+Keyword Research is the STRATEGIC INPUT.
+Content Engine is the EXECUTION LAYER.
+
+No content should be created or optimized without an explicit keyword rationale.
+
+---
+
+## 12.2 Keyword → Content Mapping Model
+
+Each keyword or keyword cluster MUST be mapped to exactly one of the following:
+
+- Existing Page (Optimize)
+- New Page (Create)
+- Supporting Section (Enhance)
+- Ignored / Deferred (Documented reason required)
+
+This mapping MUST be explicit and auditable.
+
+---
+
+## 12.3 Content Intent Alignment (MANDATORY)
+
+Before content creation, the system MUST validate:
+
+- Keyword search intent:
+  - Informational
+  - Commercial
+  - Transactional
+  - Navigational
+- Content type suitability:
+  - Blog / Article
+  - Landing page
+  - Product / Service page
+  - FAQ / Support
+
+Intent mismatch MUST block auto-generation.
+
+---
+
+## 12.4 Content Brief Generation
+
+For each approved keyword or cluster, the Content Engine MUST generate
+a structured Content Brief including:
+
+- Primary keyword
+- Secondary keywords
+- Search intent
+- Target URL (existing or new)
+- Recommended content type
+- Suggested outline (H1–H3)
+- Internal links to include (from crawl inventory)
+- SEO constraints (brand, risk, JS dependency)
+
+The Content Brief is the SINGLE SOURCE OF TRUTH for content generation.
+
+---
+
+## 12.5 Cannibalization Prevention
+
+Before approving content creation or optimization, the system MUST:
+
+- Check existing URL inventory
+- Detect:
+  - Multiple pages targeting same keyword
+  - Overlapping keyword clusters
+- Require one of:
+  - Merge
+  - Re-target
+  - Defer
+
+No new content may be created if cannibalization risk is unresolved.
+
+---
+
+## 12.6 Content Creation & Optimization Modes
+
+The Content Engine MUST support:
+
+### Create Mode
+- For unmapped, high-opportunity keywords
+- Generates new page draft based on Content Brief
+
+### Optimize Mode
+- For existing pages with keyword opportunity
+- Improves structure, coverage, internal linking
+- Must preserve brand style and intent
+
+### Assist Mode
+- Suggest outlines, FAQs, or sections only
+- No full rewrite
+
+---
+
+## 12.7 Feedback Lo
+After content is published:
+
+- Keywords MUST be tracked against:
+  - Ranking
+  - Traffic
+  - Engagement
+- Performance feedback MUST:
+  - Update opportunity score
+  - Influence future content decisions
+
+---
+
+## 12.8 Frontend Integration Requirements
+
+Frontend MUST provide:
+
+### Keyword Research → Content Actions
+- Action buttons per keyword / cluster:
+  - “Create Content”
+  - “Optimize Existing Page”
+  - “Map to Page”
+
+### Content Planning View
+- List of planned / drafted / published content
+- Linked keywords and clusters
+- Status and performance indicators
+
+### Traceability
+- From keyword → content → URL → performance
+
+---
+
+## 12.9 Governance Rules
+
+- No AI-generated content without a Content Brief
+- No content action without keyword mapping
+- Autonomous agents MUST respect content intent & brand guardrails
+- All content actions MUST be explainable
+
+---
+
+## 12.10 Integration with Other Layers
+
+This integration feeds and depends on:
+
+- Keyword Research (v0.2)
+- Content Engine (v0.3)
+- URL Inventory & Crawl (Section 11)
+- Brand Guardrail (v1.4)
+- Scenario Simulation (v1.5)
+- Cost-aware Optimization (v1.6)
+
+No content decision may bypass keyword intelligence.
 
 ---
 
