@@ -177,3 +177,4 @@ See [AI_SEO_TOOL_PROMPT_BOOK.md](./AI_SEO_TOOL_PROMPT_BOOK.md) for:
 ## License
 
 MIT
+# seotool
