@@ -17,6 +17,11 @@ import { SEOCrawler } from './seo_crawler';
 import { CrawlJobService } from './crawl_job.service';
 import { CrawlJob, CrawlProgressUpdate } from './crawl_job.types';
 import { CrawlResult, PageSEOData } from './models';
+import { UrlInventoryRepository } from './repositories/urlInventoryRepository';
+import { PageContentRepository, NormalizedContent } from './repositories/pageContentRepository';
+import { CWVRunner, selectRepresentativePages } from './cwv/cwv_runner';
+import { CWVRepository } from './cwv/vitals_repository';
+import { DEFAULT_CWV_CONFIG } from './cwv/cwv_types';
 
 export interface CrawlerWorkerConfig {
   /** Batch size for progress reporting */
@@ -37,11 +42,15 @@ export class CrawlerWorker {
   private isRunning: boolean = false;
   private shouldStop: boolean = false;
   private currentCrawler: SEOCrawler | null = null;
+  private urlInventoryRepo: UrlInventoryRepository;
+  private pageContentRepo: PageContentRepository;
   
   constructor(pool: Pool, config?: Partial<CrawlerWorkerConfig>) {
     this.pool = pool;
     this.jobService = new CrawlJobService(pool);
     this.config = { ...DEFAULT_WORKER_CONFIG, ...config };
+    this.urlInventoryRepo = new UrlInventoryRepository(pool);
+    this.pageContentRepo = new PageContentRepository(pool);
   }
   
   /**
@@ -71,6 +80,10 @@ export class CrawlerWorker {
       const domain = projectResult.rows[0].domain;
       const baseUrl = domain.startsWith('http') ? domain : `https://${domain}`;
       
+      // CRITICAL: Seed initial URL into inventory before crawl starts
+      console.log(`[CrawlerWorker] Seeding initial URL into inventory: ${baseUrl}`);
+      await this.urlInventoryRepo.upsertUrl(job.projectId, baseUrl, job.id);
+      
       // Mark job as started
       await this.jobService.startCrawlJob(job.id);
       
@@ -83,7 +96,7 @@ export class CrawlerWorker {
         requestDelay: job.config.requestDelay,
         timeout: job.config.timeout,
         userAgent: job.config.userAgent,
-        storeRawHtml: false,
+        storeRawHtml: true, // Enable HTML content storage for SEO analysis
       });
       
       // Track progress
@@ -101,10 +114,9 @@ export class CrawlerWorker {
           case 'crawl:page':
             pagesProcessed++;
             
-            // Save page to database
-            if (this.config.savePagesToDb) {
-              await this.savePageToDb(job.projectId, event.data as PageSEOData);
-            }
+            // Process page with mandatory content storage
+            const pageData = event.data as PageSEOData;
+            await this.processCrawledPage(job, pageData);
             
             // Report progress periodically
             if (pagesProcessed % this.config.progressBatchSize === 0) {
@@ -148,7 +160,22 @@ export class CrawlerWorker {
       // Run the crawl
       const result = await this.currentCrawler.start();
       
-      // Complete the job
+      // CRITICAL: Check that content storage matches crawled URLs before completing
+      const stats = await this.urlInventoryRepo.getCrawlJobStats(job.id);
+      
+      if (stats.content_stored !== stats.urls_crawled) {
+        const errorMsg = `Content storage validation failed: ${stats.content_stored} content stored vs ${stats.urls_crawled} URLs crawled`;
+        console.error(`[CrawlerWorker] ${errorMsg}`);
+        
+        await this.jobService.failCrawlJob(job.id, errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      // Collect Core Web Vitals for representative pages
+      console.log(`[CrawlerWorker] Starting Core Web Vitals collection...`);
+      await this.collectCoreWebVitals(job, result.pages.map(p => p.url));
+      
+      // Complete the job only if content storage is validated
       await this.jobService.completeCrawlJob(job.id, {
         totalPages: result.summary.totalPages,
         successfulPages: result.summary.successfulPages,
@@ -160,7 +187,7 @@ export class CrawlerWorker {
         criticalIssues: result.summary.criticalIssues,
       });
       
-      console.log(`[CrawlerWorker] Job ${job.id} completed: ${result.summary.totalPages} pages crawled`);
+      console.log(`[CrawlerWorker] Job ${job.id} completed: ${result.summary.totalPages} pages crawled, ${stats.content_stored} content stored`);
       
       return result;
       
@@ -179,6 +206,165 @@ export class CrawlerWorker {
     }
   }
   
+  /**
+   * Process a crawled page with mandatory content storage
+   * CRITICAL: Content MUST be stored before URL is marked as CRAWLED
+   */
+  private async processCrawledPage(job: CrawlJob, pageData: PageSEOData): Promise<void> {
+    try {
+      // 1. Ensure URL exists in inventory (should already be there from discovery)
+      let urlRecord = await this.urlInventoryRepo.getUrlByUrl(
+        job.projectId,
+        pageData.url
+      );
+
+      if (!urlRecord) {
+        // URL not in inventory - this shouldn't happen but handle gracefully
+        console.warn(`[CrawlerWorker] URL not found in inventory: ${pageData.url}`);
+        urlRecord = await this.urlInventoryRepo.upsertUrl(
+          job.projectId,
+          pageData.url,
+          job.id
+        );
+      }
+
+      // 2. Mark URL as PROCESSING (if not already)
+      if (urlRecord.state === 'DISCOVERED') {
+        // Note: url_inventory doesn't have PROCESSING state, skip this step
+      }
+
+      // 3. Normalize and store content
+      const contentHash = this.pageContentRepo.computeContentHash({
+        url: pageData.url,
+        title: pageData.title,
+        meta_description: pageData.metaDescription,
+        h1: pageData.h1Tags.length > 0 ? pageData.h1Tags[0] : undefined,
+        h2: pageData.h2Tags,
+        h3: pageData.h3Tags,
+        visible_text: '',
+        word_count: pageData.wordCount,
+        links: {
+          internal: pageData.internalLinks.map(url => ({ url, anchor_text: '', context: undefined })),
+          external: pageData.externalLinks.map(url => ({ url, anchor_text: '', rel: undefined }))
+        },
+        structured_data: pageData.structuredData || [],
+        media: {
+          images: pageData.images.map(img => ({ src: img.src, alt: img.alt, context: undefined })),
+          videos: []
+        },
+        content_structure: {
+          sections: [],
+          lists: [],
+          tables: []
+        }
+      });
+
+      const contentRecord = await this.pageContentRepo.storeContent({
+        project_id: job.projectId,
+        url: pageData.url,
+        render_mode: 'html_only',
+        title: pageData.title,
+        meta_description: pageData.metaDescription,
+        headings: this.extractHeadings(pageData),
+        internal_links: pageData.internalLinks,
+        external_links: pageData.externalLinks,
+        images: pageData.images.map(img => ({ src: img.src, alt: img.alt })),
+        structured_data: pageData.structuredData,
+        content_text: '', // TODO: Extract visible text
+        content_hash: contentHash,
+        raw_html: pageData.rawHtml, // Store raw HTML for SEO analysis
+      });
+
+      // 4. ONLY after content storage succeeds, mark URL as CRAWLED
+      await this.urlInventoryRepo.markCrawled(urlRecord.id!);
+
+      console.log(`[CrawlerWorker] Processed page: ${pageData.url} (content stored)`);
+
+    } catch (error) {
+      console.error(`[CrawlerWorker] Failed to process page ${pageData.url}:`, error);
+      
+      // Mark URL as failed
+      const urlRecord = await this.urlInventoryRepo.getUrlByUrl(
+        job.projectId,
+        pageData.url
+      );
+      
+      if (urlRecord) {
+        await this.urlInventoryRepo.markFailed(
+          urlRecord.id!,
+          error instanceof Error ? error.message : 'Content storage failed'
+        );
+      }
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Extract headings from page data
+   */
+  private extractHeadings(pageData: PageSEOData): any[] {
+    const headings = [];
+    if (pageData.h1Tags.length > 0) {
+      headings.push({ level: 1, text: pageData.h1Tags[0] });
+    }
+    pageData.h2Tags.forEach(h => headings.push({ level: 2, text: h }));
+    pageData.h3Tags.forEach(h => headings.push({ level: 3, text: h }));
+    return headings;
+  }
+
+  /**
+   * Collect Core Web Vitals from GA4 instead of Playwright measurement
+   * Updated to use GA4 web vitals data instead of synthetic measurements
+   */
+  private async collectCoreWebVitals(job: CrawlJob, crawledUrls: string[]): Promise<void> {
+    try {
+      console.log(`[CrawlerWorker] Collecting CWV from GA4 web vitals data`);
+
+      // Check if GA4 is configured for this project
+      const ga4Config = await this.pool.query(`
+        SELECT ga4_property_id, ga4_credentials, ga4_sync_enabled
+        FROM projects
+        WHERE id = $1
+      `, [job.projectId]);
+
+      if (ga4Config.rows.length === 0) {
+        console.log(`[CrawlerWorker] Project not found, skipping GA4 CWV sync`);
+        return;
+      }
+
+      const config = ga4Config.rows[0];
+      if (!config.ga4_property_id || !config.ga4_credentials || !config.ga4_sync_enabled) {
+        console.log(`[CrawlerWorker] GA4 not configured or disabled, skipping CWV sync`);
+        return;
+      }
+
+      // Trigger GA4 CWV sync using child process
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      const workerPath = `${process.cwd()}/../workers/ga4_worker`;
+      const command = `cd "${workerPath}" && npm run sync-cwv -- --project-id=${job.projectId} --days=30`;
+
+      console.log(`[CrawlerWorker] Triggering GA4 CWV sync: ${command}`);
+
+      // Run sync in background
+      exec(command, (error, stdout, stderr) => {
+        if (error) {
+          console.error(`[CrawlerWorker] GA4 CWV sync failed:`, stderr);
+        } else {
+          console.log(`[CrawlerWorker] GA4 CWV sync completed:`, stdout);
+        }
+      });
+
+      console.log(`[CrawlerWorker] GA4 CWV sync triggered successfully`);
+
+    } catch (error) {
+      console.error(`[CrawlerWorker] Failed to trigger GA4 CWV sync:`, error);
+    }
+  }
+
   /**
    * Stop current crawl gracefully
    */
@@ -205,67 +391,5 @@ export class CrawlerWorker {
     });
     
     console.log(`[CrawlerWorker] Progress: ${update.progress}% (${update.crawledPages} pages)`);
-  }
-  
-  /**
-   * Save crawled page to database
-   */
-  private async savePageToDb(projectId: string, page: PageSEOData): Promise<void> {
-    try {
-      await this.pool.query(
-        `INSERT INTO crawled_pages (
-          id, project_id, url, canonical_url, status_code, response_time,
-          title, meta_description, meta_robots, h1_tags, h2_tags, h3_tags,
-          word_count, internal_links, external_links, images, page_size,
-          crawl_depth, issues, crawled_at
-        ) VALUES (
-          gen_random_uuid(), $1, $2, $3, $4, $5,
-          $6, $7, $8, $9, $10, $11,
-          $12, $13, $14, $15, $16,
-          $17, $18, NOW()
-        )
-        ON CONFLICT (project_id, url) DO UPDATE SET
-          canonical_url = EXCLUDED.canonical_url,
-          status_code = EXCLUDED.status_code,
-          response_time = EXCLUDED.response_time,
-          title = EXCLUDED.title,
-          meta_description = EXCLUDED.meta_description,
-          meta_robots = EXCLUDED.meta_robots,
-          h1_tags = EXCLUDED.h1_tags,
-          h2_tags = EXCLUDED.h2_tags,
-          h3_tags = EXCLUDED.h3_tags,
-          word_count = EXCLUDED.word_count,
-          internal_links = EXCLUDED.internal_links,
-          external_links = EXCLUDED.external_links,
-          images = EXCLUDED.images,
-          page_size = EXCLUDED.page_size,
-          crawl_depth = EXCLUDED.crawl_depth,
-          issues = EXCLUDED.issues,
-          crawled_at = NOW()`,
-        [
-          projectId,
-          page.url,
-          page.canonicalUrl || null,
-          page.statusCode,
-          page.responseTime,
-          page.title,
-          page.metaDescription,
-          page.metaRobots,
-          JSON.stringify(page.h1Tags),
-          JSON.stringify(page.h2Tags),
-          JSON.stringify(page.h3Tags),
-          page.wordCount,
-          JSON.stringify(page.internalLinks),
-          JSON.stringify(page.externalLinks),
-          JSON.stringify(page.images),
-          page.contentLength,
-          0, // depth - not tracked in PageSEOData
-          JSON.stringify(page.issues),
-        ]
-      );
-    } catch (error) {
-      console.error(`[CrawlerWorker] Failed to save page ${page.url}:`, error);
-      // Don't throw - continue crawling
-    }
   }
 }

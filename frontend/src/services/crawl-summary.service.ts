@@ -4,99 +4,52 @@
  * API calls for crawl dashboard data
  */
 
-import { CrawlSummary, CrawlKPIs, StatusCodeData, IssueData } from '@/types/crawl-summary.types';
+import { CrawlSummary } from '@/types/crawl-summary.types';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 /**
  * Get crawl summary for a project
  */
 export async function getCrawlSummary(projectId: string): Promise<CrawlSummary> {
-  // TODO: Replace with real API call
-  // const response = await fetch(`${API_BASE}/api/v1/projects/${projectId}/crawl/summary`);
-  // if (!response.ok) throw new Error('Failed to fetch crawl summary');
-  // return response.json();
-
-  // Mock data for MVP
-  return getMockCrawlSummary(projectId);
-}
-
-/**
- * Mock data for development
- */
-function getMockCrawlSummary(projectId: string): CrawlSummary {
-  const kpis: CrawlKPIs = {
-    totalPages: 247,
-    pagesWithIssues: 34,
-    noindexPages: 12,
-    errorPages4xx: 8,
-    errorPages5xx: 2,
-    healthyPages: 191,
-    avgLoadTime: 1850,
-    lastCrawlDate: new Date().toISOString(),
-  };
-
-  const statusCodes: StatusCodeData[] = [
-    { code: '2xx', count: 225, percentage: 91.1, label: 'Success', color: '#22c55e' },
-    { code: '3xx', count: 12, percentage: 4.9, label: 'Redirect', color: '#3b82f6' },
-    { code: '4xx', count: 8, percentage: 3.2, label: 'Client Error', color: '#f59e0b' },
-    { code: '5xx', count: 2, percentage: 0.8, label: 'Server Error', color: '#ef4444' },
-  ];
-
-  const issues: IssueData[] = [
-    {
-      type: 'missing_meta_description',
-      count: 15,
-      severity: 'warning',
-      label: 'Missing Meta Description',
-      description: 'Pages without meta description may have lower CTR in search results',
-    },
-    {
-      type: 'missing_h1',
-      count: 8,
-      severity: 'critical',
-      label: 'Missing H1 Tag',
-      description: 'Every page should have exactly one H1 tag for SEO',
-    },
-    {
-      type: 'broken_links',
-      count: 5,
-      severity: 'critical',
-      label: 'Broken Links',
-      description: 'Internal links pointing to non-existent pages',
-    },
-    {
-      type: 'slow_pages',
-      count: 12,
-      severity: 'warning',
-      label: 'Slow Loading Pages',
-      description: 'Pages taking more than 3 seconds to load',
-    },
-    {
-      type: 'missing_alt',
-      count: 23,
-      severity: 'info',
-      label: 'Images Missing Alt Text',
-      description: 'Images should have descriptive alt text for accessibility',
-    },
-    {
-      type: 'duplicate_title',
-      count: 4,
-      severity: 'warning',
-      label: 'Duplicate Title Tags',
-      description: 'Multiple pages share the same title tag',
-    },
-  ];
-
-  return {
-    projectId,
-    projectName: 'VIB Website',
-    kpis,
-    statusCodes,
-    issues,
-    crawlStatus: 'completed',
-    crawlProgress: 100,
-  };
+  const url = `${API_BASE}/projects/${projectId}/crawl/summary`;
+  console.log('[CrawlSummary] Fetching from:', url);
+  
+  try {
+    const response = await fetch(url);
+    console.log('[CrawlSummary] Response status:', response.status);
+    
+    if (!response.ok) {
+      console.error('[CrawlSummary] API error:', response.status, response.statusText);
+      // Return empty summary on error
+      return getEmptyCrawlSummary(projectId);
+    }
+    const data = await response.json();
+    console.log('[CrawlSummary] Data received:', data);
+    
+    // Transform the response to match frontend types
+    return {
+      projectId: data.projectId,
+      projectName: data.projectName,
+      kpis: {
+        totalPages: data.kpis?.totalPages || 0,
+        pagesWithIssues: data.kpis?.pagesWithIssues || 0,
+        noindexPages: data.kpis?.noindexPages || 0,
+        errorPages4xx: data.kpis?.errorPages4xx || 0,
+        errorPages5xx: data.kpis?.errorPages5xx || 0,
+        healthyPages: data.kpis?.healthyPages || 0,
+        avgLoadTime: data.kpis?.avgLoadTime || 0,
+        lastCrawlDate: data.kpis?.lastCrawlDate || null,
+      },
+      statusCodes: data.statusCodes || [],
+      issues: data.issues || [],
+      crawlStatus: data.crawlStatus || 'not_started',
+      crawlProgress: data.crawlProgress,
+    };
+  } catch (error) {
+    console.error('[CrawlSummary] Failed to fetch:', error);
+    return getEmptyCrawlSummary(projectId);
+  }
 }
 
 /**

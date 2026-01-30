@@ -102,16 +102,11 @@ export function ProjectProvider({ children }: ProjectProviderProps) {
   const [state, dispatch] = useReducer(projectReducer, initialState);
   const { user, isAuthenticated } = useAuth();
 
-  // Fetch projects on auth change
+  // Fetch projects on mount (not dependent on auth for now)
   useEffect(() => {
-    if (isAuthenticated && user) {
-      fetchProjects();
-    } else {
-      dispatch({ type: 'SET_PROJECTS', payload: [] });
-      dispatch({ type: 'SET_CURRENT_PROJECT', payload: null });
-    }
+    fetchProjects();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, user?.id]);
+  }, []);
 
   // Fetch projects
   const fetchProjects = useCallback(async () => {

@@ -39,7 +39,8 @@ function DashboardContent() {
       }
       setError(null);
       
-      const dashboardData = await fetchDashboardData();
+      // Use currentProject ID if available, otherwise fetch default dashboard
+      const dashboardData = await fetchDashboardData(currentProject?.id);
       setData(dashboardData);
     } catch (err) {
       setError('Failed to load dashboard data. Please try again.');

@@ -37,6 +37,7 @@ const mainNavItems: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/crawl/dashboard', label: 'Crawl Health', icon: Globe },
   { href: '/crawl', label: 'All Pages', icon: FileText },
+  { href: '/search-console', label: 'Search Console', icon: TrendingUp },
   { href: '/content', label: 'Content', icon: FileText },
   { href: '/keywords', label: 'Keywords', icon: Search },
   { href: '/backlinks', label: 'Backlinks', icon: Link2 },

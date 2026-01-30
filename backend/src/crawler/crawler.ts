@@ -314,6 +314,9 @@ export class WebCrawler {
         this.config.projectId
       );
       
+      // Add raw HTML content
+      pageData.rawHtml = html;
+      
       // Add content type and last modified
       pageData.contentType = contentType;
       pageData.lastModified = response.headers.get('last-modified') || undefined;

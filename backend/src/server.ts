@@ -20,10 +20,11 @@ export async function createServer(container: Container): Promise<FastifyInstanc
         process.env.NODE_ENV !== 'production'
           ? {
               target: 'pino-pretty',
-              options: {
-                colorize: true,
-                translateTime: 'SYS:standard',
-              },
+              options:
+                {
+                  colorize: true,
+                  translateTime: 'SYS:standard',
+                },
             }
           : undefined,
     },
@@ -50,10 +51,12 @@ export async function createServer(container: Container): Promise<FastifyInstanc
         },
       ],
       tags: [
+        { name: 'Auth', description: 'Authentication' },
         { name: 'Goals', description: 'SEO Goals management' },
         { name: 'Plans', description: 'SEO Plans management' },
         { name: 'Projects', description: 'Projects and SEO Metrics management' },
         { name: 'Crawler', description: 'Web Crawler operations' },
+        { name: 'Jobs', description: 'Scheduled Jobs management' },
         { name: 'Health', description: 'Health checks' },
       ],
     },
@@ -68,11 +71,26 @@ export async function createServer(container: Container): Promise<FastifyInstanc
   });
 
   // Register routes
+  container.authController.registerRoutes(app);
+  container.dashboardController.registerRoutes(app);
   container.goalsController.registerRoutes(app);
   container.plansController.registerRoutes(app);
   container.healthController.registerRoutes(app);
   container.projectsController.registerRoutes(app);
   container.crawlerController.registerRoutes(app);
+  container.keywordController.registerRoutes(app);
+  container.jobsController.registerRoutes(app);
+
+  // Initialize and start Job Scheduler
+  await container.jobScheduler.initialize();
+  container.jobScheduler.start();
+  logger.info('Job Scheduler started');
+
+  // Graceful shutdown
+  app.addHook('onClose', async () => {
+    logger.info('Stopping Job Scheduler');
+    container.jobScheduler.stop();
+  });
 
   // Global error handler
   app.setErrorHandler((error, request, reply) => {

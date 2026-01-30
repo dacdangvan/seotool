@@ -10,6 +10,7 @@ import { CWVDistributionData, CWVUrlSamples, UrlSample } from '@/components/cwv/
 
 // API base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
 // Types
 export interface CWVDashboardData {
@@ -228,8 +229,8 @@ export async function getCWVDashboard(
   projectId: string, 
   device: DeviceProfile = 'mobile'
 ): Promise<CWVDashboardData> {
-  // In development, return mock data
-  if (process.env.NODE_ENV === 'development' || !process.env.NEXT_PUBLIC_API_URL) {
+  // Return mock data if USE_MOCK is true
+  if (USE_MOCK) {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 500));
     return generateMockDashboardData(projectId, device);
@@ -237,7 +238,7 @@ export async function getCWVDashboard(
 
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api/cwv/dashboard?projectId=${projectId}&device=${device}`,
+      `${API_BASE_URL}/cwv/dashboard?projectId=${projectId}&device=${device}`,
       {
         headers: {
           'Content-Type': 'application/json',

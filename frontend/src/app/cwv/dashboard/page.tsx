@@ -102,7 +102,7 @@ function CWVDashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
-  const projectId = searchParams.get('projectId') ?? 'default';
+  const projectId = searchParams.get('projectId') ?? 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
   
   const [device, setDevice] = useState<DeviceProfile>('mobile');
   const [data, setData] = useState<CWVDashboardData | null>(null);

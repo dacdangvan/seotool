@@ -4,9 +4,41 @@
  * API calls and mock data for Core Web Vitals
  */
 
-import { PageCWV, DeviceProfile, getCWVStatus, formatCWVValue } from '@/types/cwv.types';
+import { PageCWV, DeviceProfile, getCWVStatus, formatCWVValue, CWVMetric, CWVStatus } from '@/types/cwv.types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+/**
+ * Transform backend CWV data to frontend format
+ */
+function transformCWVData(raw: any): PageCWV {
+  const parseValue = (val: string | number): number => {
+    if (typeof val === 'number') return val;
+    return parseFloat(val) || 0;
+  };
+
+  const createMetric = (value: string | number, status: CWVStatus, unit: string): CWVMetric => {
+    const numValue = parseValue(value);
+    return {
+      value: numValue,
+      status: status || 'good',
+      displayValue: unit === 'ms' ? `${Math.round(numValue)}ms` : numValue.toFixed(2),
+    };
+  };
+
+  return {
+    url: raw.url,
+    device: raw.device,
+    lcp: createMetric(raw.lcp_value, raw.lcp_status, 'ms'),
+    inp: raw.inp_value ? createMetric(raw.inp_value, raw.inp_status, 'ms') : null,
+    cls: createMetric(raw.cls_value, raw.cls_status, ''),
+    fcp: createMetric(raw.fcp_value, raw.fcp_status, 'ms'),
+    ttfb: createMetric(raw.ttfb_value, raw.ttfb_status, 'ms'),
+    performanceScore: raw.performance_score || 0,
+    overallStatus: raw.overall_status || 'good',
+    measuredAt: raw.measured_at || new Date().toISOString(),
+  };
+}
 
 /**
  * Get CWV data for a page
@@ -14,15 +46,23 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 export async function getPageCWV(
   projectId: string,
   url: string,
-  device?: DeviceProfile
+  device: DeviceProfile = 'mobile'
 ): Promise<PageCWV[]> {
-  // TODO: Replace with real API call
-  // const params = new URLSearchParams({ url });
-  // if (device) params.set('device', device);
-  // const response = await fetch(`${API_BASE}/api/v1/projects/${projectId}/cwv?${params}`);
-  // return response.json();
-
-  return getMockPageCWV(url);
+  try {
+    const params = new URLSearchParams({ url, device });
+    const response = await fetch(`${API_BASE}/projects/${projectId}/cwv?${params}`);
+    
+    if (!response.ok) {
+      throw new Error(`CWV API failed: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const rawData = data.cwvData || [];
+    return rawData.map((item: any) => transformCWVData(item));
+  } catch (error) {
+    console.error('Error fetching CWV data:', error);
+    return []; // Return empty array instead of mock data
+  }
 }
 
 /**
@@ -30,66 +70,45 @@ export async function getPageCWV(
  */
 export async function getBatchPageCWV(
   projectId: string,
-  urls: string[]
+  urls: string[],
+  device: DeviceProfile = 'mobile'
 ): Promise<Map<string, PageCWV[]>> {
-  // TODO: Real API
-  const result = new Map<string, PageCWV[]>();
-  
-  for (const url of urls) {
-    result.set(url, getMockPageCWV(url));
+  try {
+    const response = await fetch(`${API_BASE}/projects/${projectId}/cwv/batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls, device }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Batch CWV API failed: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const result = new Map<string, PageCWV[]>();
+    
+    for (const [url, cwvDataArray] of Object.entries(data.cwvData || {})) {
+      const transformedData = (cwvDataArray as any[]).map((item: any) => transformCWVData(item));
+      result.set(url, transformedData);
+    }
+    
+    // Ensure all requested URLs have entries
+    for (const url of urls) {
+      if (!result.has(url)) {
+        result.set(url, []);
+      }
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Error fetching batch CWV data:', error);
+    // Return empty map instead of mock data
+    const result = new Map<string, PageCWV[]>();
+    for (const url of urls) {
+      result.set(url, []);
+    }
+    return result;
   }
-  
-  return result;
-}
-
-/**
- * Mock CWV data generator
- */
-function getMockPageCWV(url: string): PageCWV[] {
-  // Generate semi-random but consistent values based on URL
-  const hash = url.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  
-  // Vary metrics slightly based on URL
-  const lcpBase = 1500 + (hash % 3500);
-  const clsBase = 0.02 + (hash % 100) / 400;
-  const fcpBase = 800 + (hash % 2200);
-  const ttfbBase = 200 + (hash % 800);
-  
-  const createMetric = (value: number, metric: 'lcp' | 'inp' | 'cls' | 'fcp' | 'ttfb') => ({
-    value,
-    status: getCWVStatus(metric, value),
-    displayValue: formatCWVValue(metric, value),
-  });
-
-  // Mobile data (usually slower)
-  const mobile: PageCWV = {
-    url,
-    device: 'mobile',
-    lcp: createMetric(lcpBase * 1.3, 'lcp'),
-    inp: Math.random() > 0.3 ? createMetric(150 + (hash % 250), 'inp') : null,
-    cls: createMetric(clsBase * 1.2, 'cls'),
-    fcp: createMetric(fcpBase * 1.2, 'fcp'),
-    ttfb: createMetric(ttfbBase, 'ttfb'),
-    performanceScore: Math.max(20, 95 - Math.floor((lcpBase / 100) + (clsBase * 100))),
-    overallStatus: getCWVStatus('lcp', lcpBase * 1.3),
-    measuredAt: new Date().toISOString(),
-  };
-
-  // Desktop data (usually faster)
-  const desktop: PageCWV = {
-    url,
-    device: 'desktop',
-    lcp: createMetric(lcpBase * 0.7, 'lcp'),
-    inp: Math.random() > 0.3 ? createMetric(80 + (hash % 150), 'inp') : null,
-    cls: createMetric(clsBase * 0.8, 'cls'),
-    fcp: createMetric(fcpBase * 0.8, 'fcp'),
-    ttfb: createMetric(ttfbBase * 0.9, 'ttfb'),
-    performanceScore: Math.min(100, Math.max(40, 100 - Math.floor((lcpBase * 0.7 / 100) + (clsBase * 50)))),
-    overallStatus: getCWVStatus('lcp', lcpBase * 0.7),
-    measuredAt: new Date().toISOString(),
-  };
-
-  return [mobile, desktop];
 }
 
 /**

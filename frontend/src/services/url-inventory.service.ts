@@ -16,7 +16,7 @@ import type {
 } from '@/types/url-inventory.types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== 'false';
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
 /**
  * Fetch URL inventory for a project
@@ -64,7 +64,17 @@ export async function fetchUrlInventory(
     throw new Error('Failed to fetch URL inventory');
   }
 
-  return response.json();
+  const data = await response.json();
+  
+  // Normalize state and source to uppercase (backend may return lowercase)
+  return {
+    ...data,
+    items: data.items?.map((item: UrlInventoryItem & { state: string; source: string }) => ({
+      ...item,
+      state: (item.state?.toUpperCase() || 'DISCOVERED') as UrlInventoryState,
+      source: (item.source?.toUpperCase() || 'INTERNAL_LINK') as UrlDiscoverySource,
+    })) || [],
+  };
 }
 
 /**

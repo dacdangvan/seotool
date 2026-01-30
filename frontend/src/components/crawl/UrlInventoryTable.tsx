@@ -54,7 +54,7 @@ interface StateBadgeProps {
 }
 
 export function StateBadge({ state, size = 'sm' }: StateBadgeProps) {
-  const config = URL_STATE_CONFIG[state];
+  const config = URL_STATE_CONFIG[state] || URL_STATE_CONFIG.DISCOVERED;
   const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm';
 
   return (
@@ -95,7 +95,7 @@ interface SourceBadgeProps {
 }
 
 export function SourceBadge({ source, size = 'sm' }: SourceBadgeProps) {
-  const config = URL_SOURCE_CONFIG[source];
+  const config = URL_SOURCE_CONFIG[source] || URL_SOURCE_CONFIG.INTERNAL_LINK;
   const sizeClasses = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-sm';
 
   return (

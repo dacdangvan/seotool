@@ -7,34 +7,24 @@
 import type { CrawlResult, CrawlSummary, PageSEOData } from '@/types/crawl';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api';
-const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK !== 'false';
 
 // Cache for crawl data
 let cachedCrawlResult: CrawlResult | null = null;
 
 /**
  * Fetch crawl result data
- * In MVP mode, loads from static JSON file
+ * Always fetch from API - no mock data in production
  */
 export async function fetchCrawlResult(): Promise<CrawlResult> {
   if (cachedCrawlResult) {
     return cachedCrawlResult;
   }
   
-  if (USE_MOCK) {
-    // Load from static file in public folder
-    const response = await fetch('/crawl-data.json');
-    if (!response.ok) {
-      throw new Error('Failed to load crawl data');
-    }
-    cachedCrawlResult = await response.json();
-    return cachedCrawlResult!;
-  }
-  
-  // Production: fetch from API
+  // Always fetch from API - mock data removed per crawl-centric architecture
   const response = await fetch(`${API_BASE}/crawl/latest`);
   if (!response.ok) {
-    throw new Error('Failed to fetch crawl data');
+    const errorText = await response.text();
+    throw new Error(`Failed to fetch crawl data: ${response.status} ${errorText}`);
   }
   cachedCrawlResult = await response.json();
   return cachedCrawlResult!;
@@ -87,35 +77,76 @@ export function clearCrawlCache(): void {
 
 /**
  * Calculate SEO health score from crawl data
+ * Dynamically calculate from pages data since summary may not have all fields
  */
-export function calculateSEOHealthScore(summary: CrawlSummary): {
+export function calculateSEOHealthScore(summary: CrawlSummary, pages?: PageSEOData[]): {
   overall: number;
   technical: number;
   content: number;
   meta: number;
 } {
-  const { totalPages } = summary;
+  const totalPages = summary.totalPages || pages?.length || 0;
   
   if (totalPages === 0) {
     return { overall: 0, technical: 0, content: 0, meta: 0 };
   }
   
-  // Technical score (based on response time and status codes)
-  const successRate = summary.successfulPages / totalPages;
+  // If we have pages data, calculate from it
+  if (pages && pages.length > 0) {
+    // Technical score (based on response time and status codes)
+    const successfulPages = pages.filter(p => p.statusCode >= 200 && p.statusCode < 400).length;
+    const successRate = successfulPages / totalPages;
+    const avgResponseTime = pages.reduce((sum, p) => sum + p.responseTime, 0) / totalPages;
+    const fastResponseRate = avgResponseTime < 500 ? 1 : 
+                            avgResponseTime < 1000 ? 0.8 : 
+                            avgResponseTime < 2000 ? 0.6 : 0.4;
+    const technical = Math.round((successRate * 0.6 + fastResponseRate * 0.4) * 100);
+    
+    // Content score (based on word count and thin content)
+    const thinContentPages = pages.filter(p => p.wordCount < 300).length;
+    const thinContentRate = thinContentPages / totalPages;
+    const content = Math.round((1 - thinContentRate) * 100);
+    
+    // Meta score (based on title, description, H1)
+    const pagesWithoutTitle = pages.filter(p => !p.title || p.title.length === 0).length;
+    const pagesWithoutMetaDescription = pages.filter(p => !p.metaDescription || p.metaDescription.length === 0).length;
+    const pagesWithoutH1 = pages.filter(p => p.h1Count === 0).length;
+    const pagesWithMultipleH1 = pages.filter(p => p.h1Count > 1).length;
+    
+    const titleScore = 1 - (pagesWithoutTitle / totalPages);
+    const descScore = 1 - (pagesWithoutMetaDescription / totalPages);
+    const h1Score = 1 - (pagesWithoutH1 / totalPages);
+    const multiH1Penalty = (pagesWithMultipleH1 / totalPages) * 0.5;
+    const meta = Math.round((titleScore * 0.35 + descScore * 0.35 + h1Score * 0.3 - multiH1Penalty) * 100);
+    
+    // Overall weighted score
+    const overall = Math.round(technical * 0.3 + content * 0.35 + meta * 0.35);
+    
+    return {
+      overall: Math.max(0, Math.min(100, overall)),
+      technical: Math.max(0, Math.min(100, technical)),
+      content: Math.max(0, Math.min(100, content)),
+      meta: Math.max(0, Math.min(100, meta)),
+    };
+  }
+  
+  // Fallback to summary fields if pages not available
+  const successfulPages = summary.successfulPages ?? (summary as { crawledPages?: number }).crawledPages ?? totalPages;
+  const successRate = successfulPages / totalPages;
   const fastResponseRate = summary.avgResponseTime < 500 ? 1 : 
                           summary.avgResponseTime < 1000 ? 0.8 : 
                           summary.avgResponseTime < 2000 ? 0.6 : 0.4;
   const technical = Math.round((successRate * 0.6 + fastResponseRate * 0.4) * 100);
   
-  // Content score (based on word count and thin content)
-  const thinContentRate = summary.pagesWithThinContent / totalPages;
+  // Content score
+  const thinContentRate = (summary.pagesWithThinContent ?? 0) / totalPages;
   const content = Math.round((1 - thinContentRate) * 100);
   
-  // Meta score (based on title, description, H1)
-  const titleScore = 1 - (summary.pagesWithoutTitle / totalPages);
-  const descScore = 1 - (summary.pagesWithoutMetaDescription / totalPages);
-  const h1Score = 1 - (summary.pagesWithoutH1 / totalPages);
-  const multiH1Penalty = summary.pagesWithMultipleH1 / totalPages * 0.5;
+  // Meta score
+  const titleScore = 1 - ((summary.pagesWithoutTitle ?? 0) / totalPages);
+  const descScore = 1 - ((summary.pagesWithoutMetaDescription ?? 0) / totalPages);
+  const h1Score = 1 - ((summary.pagesWithoutH1 ?? 0) / totalPages);
+  const multiH1Penalty = ((summary.pagesWithMultipleH1 ?? 0) / totalPages) * 0.5;
   const meta = Math.round((titleScore * 0.35 + descScore * 0.35 + h1Score * 0.3 - multiH1Penalty) * 100);
   
   // Overall weighted score

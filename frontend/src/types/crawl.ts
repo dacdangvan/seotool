@@ -47,6 +47,7 @@ export interface PageSEOData {
   url: string;
   statusCode: number;
   responseTime: number;
+  loadTime: number; // Total page load time (loadEventEnd - navigationStart)
   
   // Meta tags
   title: string | null;

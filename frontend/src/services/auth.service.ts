@@ -63,7 +63,7 @@ class AuthService {
       return this.mockLogin(credentials);
     }
 
-    const response = await fetch(`${this.baseUrl}/auth/login`, {
+    const response = await fetch(`${this.baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
@@ -87,7 +87,7 @@ class AuthService {
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/auth/verify`, {
+      const response = await fetch(`${this.baseUrl}/api/auth/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -109,7 +109,7 @@ class AuthService {
       return this.mockGetCurrentUser(token);
     }
 
-    const response = await fetch(`${this.baseUrl}/auth/me`, {
+    const response = await fetch(`${this.baseUrl}/api/auth/me`, {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
@@ -131,7 +131,7 @@ class AuthService {
       return;
     }
 
-    await fetch(`${this.baseUrl}/auth/logout`, {
+    await fetch(`${this.baseUrl}/api/auth/logout`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

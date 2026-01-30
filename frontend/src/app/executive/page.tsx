@@ -19,7 +19,7 @@ import {
   AutomationTransparency,
   ExecutiveSummary,
 } from '@/components/executive';
-import { fetchExecutiveDashboardData } from '@/lib/executive-mock-data';
+import { fetchExecutiveDashboardData } from '@/services/executive.service';
 import type { ExecutiveDashboardData } from '@/types/executive';
 
 // =============================================================================

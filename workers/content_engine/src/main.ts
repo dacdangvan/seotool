@@ -2,13 +2,18 @@
  * Content Engine - Main Entry Point
  * 
  * HTTP server for content generation tasks.
+ * Reads AI config from database per project, not from env vars.
  */
 
+// Load environment variables first
+import 'dotenv/config';
+
 import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { Pool } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
 import { loadConfig } from './config';
 import { Logger } from './logger';
-import { createLLMAdapter } from './adapters';
+import { createLLMAdapter, createLLMAdapterFromEnv, type AIConfig, type LLMProvider } from './adapters';
 import { ContentGenerator } from './content_generator';
 import {
   ContentGenerationTaskSchema,
@@ -27,19 +32,48 @@ const config = loadConfig();
 
 // Initialize components
 let repository: ContentRepository;
-let generator: ContentGenerator;
+let pool: Pool | null = null;
+
+/**
+ * Get AI config from database for a project
+ */
+async function getAIConfigFromDatabase(projectId: string): Promise<AIConfig> {
+  if (!pool) {
+    return { provider: 'mock' };
+  }
+
+  try {
+    const result = await pool.query(
+      `SELECT * FROM project_ai_configs WHERE project_id = $1`,
+      [projectId]
+    );
+
+    if (result.rows.length === 0) {
+      logger.warn(`No AI config found for project ${projectId}, using mock`);
+      return { provider: 'mock' };
+    }
+
+    const row = result.rows[0];
+    return {
+      provider: (row.ai_provider || 'mock') as LLMProvider,
+      openaiApiKey: row.openai_api_key,
+      anthropicApiKey: row.anthropic_api_key,
+      ollamaApiUrl: row.ollama_api_url || 'http://127.0.0.1:11434/v1/chat/completions',
+      ollamaModel: row.ollama_model || 'llama3:8b',
+      temperature: 0.7,
+      maxTokens: 4096,
+    };
+  } catch (error) {
+    logger.error('Failed to get AI config from database', { error });
+    return { provider: 'mock' };
+  }
+}
 
 async function initializeComponents(): Promise<void> {
-  // Initialize LLM adapter
-  const llmProvider = config.llmProvider === 'openai' || config.llmProvider === 'anthropic'
-    ? config.llmProvider
-    : 'openai';
-  
-  const llmAdapter = createLLMAdapter(config.debug ? 'mock' : llmProvider);
-  generator = new ContentGenerator(llmAdapter);
-
-  // Initialize repository
+  // Initialize database connection pool
   if (config.databaseUrl && config.databaseUrl !== 'mock') {
+    pool = new Pool({ connectionString: config.databaseUrl });
+    
     const pgRepo = new PostgresContentRepository(config.databaseUrl);
     await pgRepo.initialize();
     repository = pgRepo;
@@ -100,7 +134,7 @@ async function handleGenerate(
   res: ServerResponse
 ): Promise<void> {
   try {
-    const body = await parseBody(req);
+    const body = await parseBody(req) as any;
     
     // Validate input
     const parseResult = ContentGenerationTaskSchema.safeParse(body);
@@ -114,10 +148,22 @@ async function handleGenerate(
 
     const task = parseResult.data;
     
+    // Get projectId from request body or task
+    const projectId = body.projectId || task.planId;
+    
     logger.info('Content generation request received', {
       taskId: task.id,
+      projectId,
       primaryKeyword: task.primaryKeyword.text,
     });
+
+    // Get AI config from database for this project
+    const aiConfig = await getAIConfigFromDatabase(projectId);
+    logger.info('Using AI config', { provider: aiConfig.provider, projectId });
+
+    // Create LLM adapter based on project's AI config
+    const llmAdapter = createLLMAdapter(aiConfig);
+    const generator = new ContentGenerator(llmAdapter);
 
     // Generate content
     const result = await generator.generate(task);
@@ -252,7 +298,8 @@ async function main(): Promise<void> {
       });
     });
   } catch (error) {
-    logger.error('Failed to start server', { error });
+    console.error('Failed to start server - Full error:', error);
+    logger.error('Failed to start server', { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined });
     process.exit(1);
   }
 }

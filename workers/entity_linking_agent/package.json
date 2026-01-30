@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/main.js",
-    "dev": "ts-node src/main.ts",
+    "dev": "npx tsx src/main.ts",
     "test": "vitest",
     "test:run": "vitest run",
     "lint": "eslint src --ext .ts",

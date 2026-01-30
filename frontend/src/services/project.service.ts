@@ -1,13 +1,17 @@
 /**
  * Project Service
  * 
- * v0.8 - Project API service with crawl status tracking
- * Updated: Added crawl trigger and status APIs
+ * v0.9 - Project API service with crawl status tracking
+ * Updated: Support hybrid mode (mock auth + real data)
  */
 
 import { Project, ProjectCreateInput, ProjectUpdateInput, ProjectAccess, CrawlStatus } from '@/types/auth';
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
+const USE_REAL_DATA = process.env.NEXT_PUBLIC_USE_REAL_DATA === 'true';
+// If USE_REAL_DATA is true, always fetch from API regardless of USE_MOCK
+const FETCH_FROM_API = USE_REAL_DATA || !USE_MOCK;
+
 const STORAGE_KEY = 'seo_tool_projects';
 const ACCESS_STORAGE_KEY = 'seo_tool_project_access';
 
@@ -136,51 +140,83 @@ class ProjectService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+    this.baseUrl = '/api';
   }
 
   /**
    * Get all projects accessible by current user
    */
   async getProjects(): Promise<Project[]> {
-    if (USE_MOCK) {
+    // Use real API if FETCH_FROM_API is true
+    if (!FETCH_FROM_API) {
       return this.mockGetProjects();
     }
 
-    const token = getToken();
-    const response = await fetch(`${this.baseUrl}/projects`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    try {
+      const token = getToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`${this.baseUrl}/projects`, {
+        headers,
+      });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch projects');
+      if (!response.ok) {
+        console.warn('[ProjectService] API failed, falling back to mock');
+        return this.mockGetProjects();
+      }
+
+      const data = await response.json();
+      // Backend returns { success: true, data: { projects: [...] }}
+      const projects = data.data?.projects || data.projects || data || [];
+      console.log('[ProjectService] Loaded projects from API:', projects.length);
+      return projects;
+    } catch (error) {
+      console.warn('[ProjectService] API error, falling back to mock:', error);
+      return this.mockGetProjects();
     }
-
-    return response.json();
   }
 
   /**
    * Get single project by ID
    */
   async getProject(projectId: string): Promise<Project> {
-    if (USE_MOCK) {
+    // Use real API if FETCH_FROM_API is true
+    if (!FETCH_FROM_API) {
       return this.mockGetProject(projectId);
     }
 
-    const token = getToken();
-    const response = await fetch(`${this.baseUrl}/projects/${projectId}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
+    try {
+      const token = getToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(`${this.baseUrl}/projects/${projectId}`, {
+        headers,
+      });
 
-    if (!response.ok) {
-      throw new Error('Project not found');
+      if (!response.ok) {
+        console.warn('[ProjectService] API failed for project, falling back to mock');
+        return this.mockGetProject(projectId);
+      }
+
+      const data = await response.json();
+      // Backend returns { success: true, data: {...} }
+      return data.data || data;
+    } catch (error) {
+      console.warn('[ProjectService] API error for project, falling back to mock:', error);
+      return this.mockGetProject(projectId);
     }
-
-    return response.json();
   }
 
   /**
@@ -192,12 +228,17 @@ class ProjectService {
     }
 
     const token = getToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${this.baseUrl}/projects`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
+      headers,
       body: JSON.stringify(input),
     });
 
@@ -217,12 +258,17 @@ class ProjectService {
     }
 
     const token = getToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${this.baseUrl}/projects/${projectId}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
+      headers,
       body: JSON.stringify(input),
     });
 
@@ -242,11 +288,17 @@ class ProjectService {
     }
 
     const token = getToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${this.baseUrl}/projects/${projectId}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      headers,
     });
 
     if (!response.ok) {
@@ -258,23 +310,8 @@ class ProjectService {
    * Get project access list
    */
   async getProjectAccess(projectId: string): Promise<ProjectAccess[]> {
-    if (USE_MOCK) {
-      await mockDelay(200);
-      return mockAccess.filter(a => a.projectId === projectId);
-    }
-
-    const token = getToken();
-    const response = await fetch(`${this.baseUrl}/projects/${projectId}/access`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch project access');
-    }
-
-    return response.json();
+    // TODO: Implement when backend endpoint is available
+    return [];
   }
 
   // Mock implementations
@@ -399,12 +436,17 @@ class ProjectService {
     }
 
     const token = getToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${this.baseUrl}/projects/${projectId}/crawl`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
+      headers,
       body: JSON.stringify(options || {}),
     });
 
@@ -432,10 +474,16 @@ class ProjectService {
     }
 
     const token = getToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${this.baseUrl}/projects/${projectId}/crawl-status`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      headers,
     });
 
     if (!response.ok) {
@@ -454,11 +502,17 @@ class ProjectService {
     }
 
     const token = getToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
     const response = await fetch(`${this.baseUrl}/projects/${projectId}/crawl/cancel`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      headers,
     });
 
     if (!response.ok) {

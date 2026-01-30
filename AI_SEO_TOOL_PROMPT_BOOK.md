@@ -1,6 +1,6 @@
 # 🧠 AI SEO TOOL – PROMPT BOOK
 
-**Version:** 2.9 – Brief-driven AI Content Generation
+**Version:** 3.2 – upgrade for crawl-centric data architecture
 **Purpose:** Single Source of Truth for AI-driven Development
 **Audience:** Developers, AI Coding Assistants (VSCode + Copilot / Cursor)
 
@@ -23,6 +23,7 @@ Core Principles:
 - Explainable AI decisions (no black-box)
 - SEO safety first (avoid spam, over-optimization)
 - Browser-rendered DOM is the single source of truth for SEO analysis
+- ⚠️ ALL FEATURES MUST USE CRAWLED DATA (see Section 0.1)
 
 Tech Stack (default):
 - Backend: Node.js 22+ / TypeScript (Fastify)
@@ -40,6 +41,106 @@ Rules:
 - Prefer readability over cleverness
 - Production-grade only
 - SEO analysis MUST use rendered DOM, not raw HTML (see Section 8)
+- ALL DATA MUST ORIGINATE FROM CRAWL (see Section 0.1)
+```
+
+---
+
+## 0.1 ⚠️ CRITICAL: CRAWL-CENTRIC DATA ARCHITECTURE (MANDATORY)
+
+```text
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  🚨 GOLDEN RULE: ALL FEATURES MUST USE DATA FROM WEBSITE CRAWL               ║
+║                                                                              ║
+║  NO MOCK DATA IN PRODUCTION. NO HARDCODED VALUES.                            ║
+║  EVERYTHING DERIVES FROM CRAWLED & STORED DATA.                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+PRINCIPLE:
+- The CRAWL is the SINGLE SOURCE OF TRUTH for all SEO data
+- All features MUST read from database (PostgreSQL)
+- Database is populated ONLY by crawl jobs
+- Frontend displays data FROM database, NOT mock/static data
+
+DATA FLOW (MANDATORY):
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Website   │ --> │   Crawler   │ --> │  Database   │ --> │  Frontend   │
+│  (Project)  │     │  (Extract)  │     │  (Store)    │     │  (Display)  │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+                           │
+                           v
+                    ┌─────────────┐
+                    │  Auto Jobs  │
+                    │  (Process)  │
+                    └─────────────┘
+
+AFFECTED FEATURES (ALL MUST FOLLOW THIS RULE):
+
+1. DASHBOARD
+   - KPIs: from aggregated crawl data
+   - SEO Health: from technical issues found in crawl
+   - Recommendations: from analysis of crawl results
+   - Forecasts: from historical crawl trends
+
+2. CRAWL RESULTS
+   - URL Inventory: from discovered URLs
+   - Page Details: from crawl extraction
+   - Render Mode: from crawl metadata
+   - Core Web Vitals: from Lighthouse runs during crawl
+
+3. ALL PAGES
+   - Page list: from URL inventory table
+   - SEO scores: from crawl analysis
+   - Issues: from technical SEO checks on crawled data
+
+4. CONTENT
+   - Content list: from crawled page content
+   - Content analysis: from crawl extraction
+   - AI suggestions: based on crawled data gaps
+
+5. KEYWORDS
+   - Keyword tracking: from SERP monitoring jobs
+   - Rankings: from position tracking crawls
+   - Opportunities: from content gap analysis on crawl data
+
+6. BACKLINKS
+   - Backlink profile: from external crawl/API data
+   - Link analysis: stored in database from scheduled jobs
+
+7. ALERTS
+   - Triggered by: changes detected in crawl data
+   - Based on: comparison of crawl snapshots
+
+8. AUTO JOBS (Background Workers)
+   - Input: crawled data from database
+   - Output: processed results back to database
+   - Examples: ranking updates, content analysis, anomaly detection
+
+FORBIDDEN PATTERNS:
+❌ Hardcoded mock data in production components
+❌ Frontend fetching directly from external APIs (must go through backend)
+❌ Features working without a completed crawl
+❌ Displaying data not traceable to a crawl job
+❌ Auto jobs processing data not from database
+
+REQUIRED PATTERNS:
+✅ All data has a crawl_job_id reference
+✅ All data has timestamps (created_at, updated_at)
+✅ Frontend calls backend API → Backend reads from database
+✅ Workers write results back to database
+✅ Empty states shown when no crawl data exists
+✅ "Last crawled" timestamp visible to users
+
+DATABASE SCHEMA REQUIREMENTS:
+- Every table must link to project_id
+- Crawl-derived tables must have crawl_job_id
+- All records must be timestamped
+- Historical data must be preserved for trending
+
+DEVELOPMENT MODE:
+- Mock data is allowed ONLY in development with NEXT_PUBLIC_USE_MOCK=true
+- Production MUST always use real database
+- Mock data structure must match real database schema exactly
 ```
 
 ---
@@ -1822,6 +1923,450 @@ FAILURE CONDITIONS:
 - If intent or constraints conflict, STOP and flag an error.
 
 BEGIN CONTENT GENERATION NOW USING THE PROVIDED CONTENT BRIEF.
+
+---
+
+# 15. EXPORT CONTENT & CONTENT BRIEF TO CMS
+
+This section defines how AI-generated content and its Content Brief
+MUST be exported, structured, and delivered to CMS systems
+in a safe, auditable, and CMS-agnostic way.
+
+The goal is seamless integration with:
+- WordPress
+- Headless CMS (Strapi, Contentful, Sanity)
+- Enterprise Portals
+
+---
+
+## 15.1 Core Principle
+
+CMS is the PUBLISHING LAYER.
+SEO Tool is the INTELLIGENCE & GOVERNANCE LAYER.
+
+CMS MUST receive:
+- Final content
+- Approved metadata
+- Structured context (brief)
+- Traceability information
+
+---
+
+## 15.2 Export Timing Rules
+
+Content & Brief may be exported ONLY when:
+
+- Content Brief status = APPROVED
+- Content Draft status = APPROVED
+- SEO QA status = PASSED
+- Compliance / Brand QA status = PASSED
+
+Any failed check MUST block export.
+
+---
+
+## 15.3 Export Package Structure (MANDATORY)
+
+Each export MUST produce a single structured payload:
+
+---
+
+# 16. AUTOMATED CONTENT QA & SEO VALIDATION
+
+This section defines the mandatory automated Quality Assurance (QA)
+and SEO validation pipeline that MUST run before any content
+is exported or published to CMS.
+
+This layer acts as a non-negotiable quality gate.
+
+---
+
+## 16.1 Core Principle
+
+No content may be published unless it passes ALL required QA checks.
+
+Automated QA is a gatekeeper, not a suggestion engine.
+
+---
+
+## 16.2 QA Validation Layers
+
+Content QA MUST consist of the following layers:
+
+1. Structural Validation
+2. SEO Validation
+3. Intent & Coverage Validation
+4. Brand & Compliance Validation
+5. Technical & Rendering Validation
+
+Each layer produces a PASS / WARN / FAIL result.
+
+---
+
+## 16.3 Structural Validation
+
+The system MUST validate:
+
+- Content format is valid Markdown
+- Exactly one H1 exists
+- H2–H3 hierarchy is logical and non-skipped
+- Content length is within brief-defined range
+- No placeholder text remains
+
+FAIL if any mandatory structural rule is violated.
+
+---
+
+## 16.4 SEO Validation
+
+The system MUST validate:
+
+### On-page SEO
+- Primary keyword present:
+  - In H1 or opening paragraph
+- Secondary keywords used naturally (not forced)
+- Meta title guidance respected
+- Meta description guidance respected
+- No keyword stuffing
+
+### Internal Linking
+- Required internal links are present
+- Anchor text follows brief guidance
+- No forbidden links added
+
+### Cannibalization Check
+- Content does not target keywords already mapped to other URLs
+- Conflicts MUST be flagged
+
+FAIL if primary keyword targeting is broken or cannibalization is detected.
+
+---
+
+## 16.5 Intent & Coverage Validation
+
+The system MUST validate:
+
+- Content aligns with declared search intent
+- Mandatory sections from brief are present
+- No intent drift (e.g. informational → promotional)
+
+This validation MAY use AI classification with deterministic thresholds.
+
+WARN if coverage is shallow.
+FAIL if intent mismatch is detected.
+
+---
+
+## 16.6 Brand & Compliance Validation (BANKING-SAFE)
+
+The system MUST validate:
+
+- Tone matches brand guidelines
+- Forbidden claims are NOT present
+- Risky phrases are flagged
+- Regulatory-sensitive language is compliant
+
+FAIL if any forbidden or high-risk phrase is detected.
+
+---
+
+## 16.7 Technical & Rendering Validation
+
+The system MUST validate:
+
+- Content passes SEO-ready signal rules (Section 10)
+- Rendered DOM contains:
+  - Title
+  - Meta description
+  - H1
+- No JS-dependent SEO signals are broken
+
+WARN if rendering depends heavily on JS.
+FAIL if critical SEO signals are missing after render.
+
+---
+
+## 16.8 QA Output Schema
+
+Each QA run MUST generate a structured report:
+
+```json
+{
+  "content_id": "content_789",
+  "qa_status": "PASS",
+  "layers": {
+    "structure": "PASS",
+    "seo": "PASS",
+    "intent": "PASS",
+    "brand": "PASS",
+    "technical": "WARN"
+  },
+  "issues": [
+    {
+      "type": "TECHNICAL",
+      "severity": "WARN",
+      "message": "Meta description generated via JS rendering"
+    }
+  ]
+}
+---
+
+# 17. FULL PAGE CONTENT CAPTURE & NORMALIZATION
+
+This section defines how the crawler MUST capture, normalize, and store
+full page content during crawling to serve as a unified data layer
+for all downstream AI features.
+
+Crawling is not only for SEO auditing.
+Crawling is a DATA ACQUISITION PIPELINE.
+
+---
+
+## 17.1 Core Principle
+
+When a page is crawled successfully, the system MUST retain
+a structured, reusable representation of the page content.
+
+SEO signals alone are insufficient for advanced AI features.
+
+---
+
+## 17.2 Content Capture Scope (MANDATORY)
+
+For every crawled URL, the crawler MUST capture:
+
+### A. Rendered Text Content
+- Visible text content after JS rendering
+- Exclude:
+  - Navigation boilerplate (header/footer)
+  - Cookie banners
+  - Legal footers (optional configurable)
+- Preserve paragraph and heading boundaries
+
+### B. Content Structure
+- H1–H6 hierarchy
+- Section boundaries
+- Lists (ul/ol)
+- Tables (textual representation)
+
+### C. Media Metadata
+- Images:
+  - src
+  - alt text
+  - surrounding context
+- Embedded media (iframe/video) metadata only
+
+### D. Links
+- Internal links:
+  - URL
+  - anchor text
+  - link context (section)
+- External links:
+  - URL
+  - rel attributes
+
+### E. Structured Data
+- JSON-LD blocks
+- Schema types detected
+
+---
+
+## 17.3 Raw vs Normalized Content
+
+The system MUST distinguish between:
+
+- raw_rendered_html  
+  - Full DOM snapshot after JS rendering
+  - Stored compressed
+  - Used for debugging & diffing
+
+- normalized_content  
+  - Clean, structured, semantic content
+  - Used for AI features
+
+AI features MUST NOT consume raw HTML directly.
+
+---
+
+## 17.4 Normalized Content Schema (MANDATORY)
+
+Each crawled page MUST produce a normalized content object:
+
+```json
+{
+  "url": "/vn/the-tin-dung/vib-ivycard",
+  "language": "vi",
+  "render_mode": "js_rendered",
+  "content": {
+    "title": "Thẻ tín dụng VIB IvyCard",
+    "headings": [
+      { "level": 1, "text": "Thẻ tín dụng VIB IvyCard" },
+      { "level": 2, "text": "Quyền lợi nổi bật" }
+    ],
+    "sections": [
+      {
+        "section_id": "benefits",
+        "heading": "Quyền lợi nổi bật",
+        "text": "Hoàn tiền, ưu đãi mua sắm..."
+      }
+    ],
+    "paragraphs": [
+      "VIB IvyCard mang đến nhiều ưu đãi...",
+      "Khách hàng được hưởng..."
+    ],
+    "lists": [
+      ["Hoàn tiền", "Miễn lãi", "Ưu đãi đối tác"]
+    ],
+    "tables": []
+  }
+}
+---
+
+# 18. SCHEDULED & MANUAL FULL CRAWL EXECUTION
+
+This section defines how crawling MUST be executed
+as an independent, continuously running system,
+decoupled from backend APIs and frontend lifecycles.
+
+Crawling is a long-running background process,
+not a request-response operation.
+
+---
+
+## 18.1 Core Principle
+
+- Backend API orchestrates crawl jobs
+- Crawler Worker executes crawl jobs
+- Frontend triggers and observes, never crawls
+
+Crawler Workers MUST run continuously and independently.
+
+---
+
+## 18.2 Crawl Execution Modes
+
+The system MUST support two crawl execution modes:
+
+### A. Scheduled Crawl
+- Automatically triggered based on project configuration
+- Runs without user interaction
+- Default frequency: daily
+
+### B. Manual Re-Crawl
+- Triggered by user action from frontend
+- Re-crawls ALL pages and ALL data
+- Creates a new crawl job
+
+Both modes MUST use the same crawl pipeline.
+
+---
+
+## 18.3 Crawl Job Model
+
+Each crawl MUST be represented by a Crawl Job:
+
+```json
+{
+  "job_id": "crawl_123",
+  "project_id": "proj_456",
+  "trigger_type": "SCHEDULED | MANUAL",
+  "status": "CREATED | QUEUED | RUNNING | COMPLETED | FAILED | PARTIAL",
+  "started_at": null,
+  "finished_at": null
+}
+
+---
+
+# 19. INTELLIGENT INCREMENTAL CRAWLING & DATA COMPLETENESS
+
+This section defines how the crawler MUST support intelligent incremental crawling
+while guaranteeing data completeness and correctness.
+
+Incremental crawl is ONLY allowed after a valid full crawl baseline exists.
+
+---
+
+## 19.1 Crawl Completion Definition (MANDATORY)
+
+A crawl job MUST NOT be marked COMPLETED unless:
+
+- All discovered URLs are processed
+- All crawled URLs have:
+  - SEO signals stored
+  - Normalized content stored
+- Failed URLs are explicitly recorded
+
+Otherwise, the job MUST be marked PARTIAL.
+
+---
+
+## 19.2 Crawl Baseline Requirement
+
+Incremental crawling is allowed ONLY if:
+
+- A successful FULL_CRAWL job exists
+- Content coverage ≥ configurable threshold (default 90%)
+
+---
+
+## 19.3 URL Change Detection
+
+Each URL MUST track:
+
+- last_crawled_at
+- content_hash
+- etag / last_modified (if available)
+
+Changes MUST be detected before scheduling re-crawl.
+
+---
+
+## 19.4 Incremental Crawl Modes
+
+The system MUST support:
+
+- FULL_CRAWL
+- INCREMENTAL_CRAWL (changed URLs only)
+- RECOVERY_CRAWL (failed URLs only)
+
+Each crawl job MUST declare its mode explicitly.
+
+---
+
+## 19.5 Incremental Crawl Priority Rules
+
+URL priority MUST consider:
+
+- Content importance
+- Traffic potential
+- SEO risk
+- CWV degradation
+- Change frequency
+
+High-priority URLs MUST be crawled first.
+
+---
+
+## 19.6 Dashboard Transparency
+
+Dashboard MUST display:
+
+- Crawl coverage %
+- Content completeness %
+- Last full crawl timestamp
+- Incremental vs full crawl history
+
+Job status alone MUST NOT be used for reporting.
+
+---
+
+## 19.7 Governance Rules
+
+- Incremental crawl MUST NOT mask incomplete data
+- Partial crawl MUST be clearly visible
+- Autonomous agents MUST verify data freshness & completeness
+
+---
 
 
 # END OF FILE

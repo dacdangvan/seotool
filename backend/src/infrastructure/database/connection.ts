@@ -35,9 +35,18 @@ export function getDbConfig(): DatabaseConfig {
 export function getPool(): Pool {
   if (!pool) {
     const config = getDbConfig();
-    pool = new Pool(config as PoolConfig);
-    
     const logger = new Logger('Database');
+    
+    // Log connection config (without password)
+    logger.info('Creating database pool', { 
+      host: config.host, 
+      port: config.port, 
+      database: config.database, 
+      user: config.user,
+      hasPassword: !!config.password 
+    });
+    
+    pool = new Pool(config as PoolConfig);
     
     pool.on('connect', () => {
       logger.debug('New client connected to database');

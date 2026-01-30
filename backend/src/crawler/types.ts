@@ -122,6 +122,9 @@ export interface PageData {
   
   /** SEO issues found */
   issues: SEOIssue[];
+
+  /** Raw HTML content of the page */
+  rawHtml?: string;
 }
 
 export interface ImageData {

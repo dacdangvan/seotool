@@ -1,0 +1,26 @@
+{
+  "name": "@vib-seo/cwv-worker",
+  "version": "1.0.0",
+  "description": "CWV Measurement Worker - Runs real Lighthouse measurements",
+  "main": "src/measure.ts",
+  "type": "module",
+  "scripts": {
+    "measure": "tsx src/measure.ts",
+    "measure:5": "tsx src/measure.ts a1b2c3d4-e5f6-7890-abcd-ef1234567890 5",
+    "measure:all": "tsx src/measure.ts a1b2c3d4-e5f6-7890-abcd-ef1234567890 100"
+  },
+  "dependencies": {
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1",
+    "playwright": "^1.40.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/pg": "^8.10.9",
+    "typescript": "^5.3.2",
+    "tsx": "^4.6.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

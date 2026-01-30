@@ -87,6 +87,11 @@ export interface BriefValidationResult {
 }
 
 /**
+ * AI Provider used for content generation
+ */
+export type AIProvider = 'ollama' | 'moltbot' | 'anthropic' | 'openai' | 'gemini' | 'template';
+
+/**
  * Generated content output
  */
 export interface GeneratedContent {
@@ -104,6 +109,11 @@ export interface GeneratedContent {
   // Metadata
   generatedAt: string;
   generationTimeMs: number;
+  
+  // AI provider info
+  aiProvider?: AIProvider;
+  crawledPagesUsed?: number;
+  fallbackReason?: string;
   
   // Validation
   briefCompliance: {
@@ -330,56 +340,139 @@ function countWords(text: string): number {
 }
 
 /**
- * Simulate AI content generation (replace with actual LLM API call)
+ * Generate content using backend API with crawled data
  */
-async function simulateContentGeneration(
+async function generateContentFromAPI(
   input: ContentGenerationInput,
   onProgress?: (progress: number) => void
 ): Promise<GeneratedContent> {
   const startTime = Date.now();
-  
-  // Simulate progressive generation
-  for (let i = 0; i <= 100; i += 10) {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    onProgress?.(i);
-  }
+  const { brief, mode, language } = input;
+  const primaryKw = brief.seo_targeting.primary_keyword;
 
+  // Show initial progress
+  onProgress?.(10);
+
+  try {
+    // Prepare brief data for API
+    const briefData = {
+      suggestedTitle: brief.seo_constraints.meta_title_guidance,
+      suggestedMetaDescription: brief.seo_constraints.meta_description_guidance,
+      suggestedH1: brief.recommended_structure.suggested_h1,
+      suggestedOutline: brief.recommended_structure.outline.map(item => item.text),
+      targetWordCount: brief.content_requirements.word_count_range.max,
+      relatedKeywordsToInclude: brief.seo_targeting.secondary_keywords,
+    };
+
+    onProgress?.(30);
+
+    // Call backend API
+    const response = await fetch(`http://localhost:3001/projects/${brief.project_id}/content/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        keyword: primaryKw,
+        brief: briefData,
+        language,
+      }),
+    });
+
+    onProgress?.(70);
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Content generation failed');
+    }
+
+    const data = await response.json();
+    
+    onProgress?.(100);
+
+    const content = data.data?.content || '';
+    const wordCount = data.data?.wordCount || countWords(content);
+    const { min, max } = brief.content_requirements.word_count_range;
+
+    return {
+      id: `content_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      briefId: brief.brief_id,
+      mode,
+      language,
+      content,
+      wordCount,
+      generatedAt: data.data?.generatedAt || new Date().toISOString(),
+      generationTimeMs: Date.now() - startTime,
+      aiProvider: data.data?.method as AIProvider || 'template',
+      crawledPagesUsed: data.data?.crawledPagesUsed,
+      fallbackReason: data.data?.fallbackReason,
+      briefCompliance: {
+        followedOutline: true,
+        primaryKeywordIncluded: content.toLowerCase().includes(primaryKw.toLowerCase()),
+        wordCountInRange: wordCount >= min && wordCount <= max,
+        toneCompliant: true,
+      },
+    };
+  } catch (error) {
+    console.error('API content generation failed, falling back to template:', error);
+    // Fallback to simple template generation
+    return generateFallbackContent(input, startTime, onProgress);
+  }
+}
+
+/**
+ * Fallback content generation when API fails
+ */
+async function generateFallbackContent(
+  input: ContentGenerationInput,
+  startTime: number,
+  onProgress?: (progress: number) => void
+): Promise<GeneratedContent> {
   const { brief, mode, language } = input;
   const h1 = brief.recommended_structure.suggested_h1;
   const primaryKw = brief.seo_targeting.primary_keyword;
 
-  // Generate mock content based on brief
+  onProgress?.(50);
+
   let content = `# ${h1}\n\n`;
   
   // Opening paragraph with primary keyword
-  content += `${primaryKw} là một trong những sản phẩm/dịch vụ được nhiều người quan tâm nhất hiện nay. `;
-  content += `Trong bài viết này, chúng tôi sẽ cung cấp thông tin chi tiết về ${primaryKw.toLowerCase()}, `;
-  content += `giúp bạn hiểu rõ hơn và đưa ra quyết định phù hợp.\n\n`;
+  if (language === 'vi') {
+    content += `${primaryKw} là một trong những chủ đề được nhiều người quan tâm nhất hiện nay. `;
+    content += `Trong bài viết này, VIB sẽ cung cấp thông tin chi tiết và hữu ích nhất về ${primaryKw.toLowerCase()}.\n\n`;
+  } else {
+    content += `${primaryKw} is one of the most searched topics today. `;
+    content += `In this article, VIB will provide the most detailed and useful information about ${primaryKw.toLowerCase()}.\n\n`;
+  }
 
   // Generate sections based on outline
   for (const item of brief.recommended_structure.outline) {
-    if (item.level === 1) continue; // Skip H1, already added
+    if (item.level === 1) continue;
     
     const heading = item.level === 2 ? '##' : '###';
     content += `${heading} ${item.text}\n\n`;
     
-    // Generate placeholder content for each section
-    const paragraphCount = Math.ceil((item.wordCount || 200) / 100);
-    for (let i = 0; i < paragraphCount; i++) {
-      content += `Đây là nội dung mô tả chi tiết về ${item.text.toLowerCase()}. `;
-      content += `Thông tin được cung cấp dựa trên nghiên cứu và phân tích thực tế, `;
-      content += `đảm bảo tính chính xác và hữu ích cho người đọc.\n\n`;
+    if (language === 'vi') {
+      content += `Phần này cung cấp thông tin chi tiết về ${item.text.toLowerCase()}. `;
+      content += `Đây là thông tin quan trọng giúp bạn hiểu rõ hơn về ${primaryKw}.\n\n`;
+    } else {
+      content += `This section provides detailed information about ${item.text.toLowerCase()}. `;
+      content += `This is important information to help you better understand ${primaryKw}.\n\n`;
     }
   }
 
-  // Add FAQ section if suggestions exist
-  if (brief.recommended_structure.faq_suggestions.length > 0) {
-    content += `## Câu hỏi thường gặp\n\n`;
-    for (const faq of brief.recommended_structure.faq_suggestions) {
-      content += `### ${faq.question}\n\n`;
-      content += `Câu trả lời chi tiết cho câu hỏi này sẽ giúp bạn hiểu rõ hơn về ${primaryKw.toLowerCase()}.\n\n`;
-    }
+  // Add conclusion
+  if (language === 'vi') {
+    content += `## Kết luận\n\n`;
+    content += `Hy vọng bài viết đã cung cấp cho bạn thông tin hữu ích về ${primaryKw}. `;
+    content += `Nếu bạn cần tư vấn thêm, hãy liên hệ VIB để được hỗ trợ tốt nhất.\n`;
+  } else {
+    content += `## Conclusion\n\n`;
+    content += `We hope this article has provided you with useful information about ${primaryKw}. `;
+    content += `If you need further advice, please contact VIB for the best support.\n`;
   }
+
+  onProgress?.(100);
 
   const wordCount = countWords(content);
   const { min, max } = brief.content_requirements.word_count_range;
@@ -400,6 +493,16 @@ async function simulateContentGeneration(
       toneCompliant: true,
     },
   };
+}
+
+/**
+ * Main content generation function - uses API with fallback
+ */
+async function simulateContentGeneration(
+  input: ContentGenerationInput,
+  onProgress?: (progress: number) => void
+): Promise<GeneratedContent> {
+  return generateContentFromAPI(input, onProgress);
 }
 
 // =============================================================================
@@ -481,8 +584,28 @@ interface ContentPreviewProps {
   onRegenerate: () => void;
 }
 
+// Helper to get AI provider display name
+function getAIProviderLabel(provider?: AIProvider): { name: string; color: string } {
+  switch (provider) {
+    case 'ollama':
+      return { name: 'Ollama (Local FREE)', color: 'bg-green-200 text-green-800' };
+    case 'moltbot':
+      return { name: 'MoltBot AI', color: 'bg-purple-100 text-purple-700' };
+    case 'anthropic':
+      return { name: 'Claude (Anthropic)', color: 'bg-orange-100 text-orange-700' };
+    case 'openai':
+      return { name: 'GPT-4o (OpenAI)', color: 'bg-green-100 text-green-700' };
+    case 'gemini':
+      return { name: 'Gemini (Google)', color: 'bg-blue-100 text-blue-700' };
+    case 'template':
+    default:
+      return { name: 'Template + Crawled Data', color: 'bg-gray-100 text-gray-700' };
+  }
+}
+
 function ContentPreview({ content, onCopy, onDownload, onRegenerate }: ContentPreviewProps) {
   const [showRaw, setShowRaw] = useState(false);
+  const providerInfo = getAIProviderLabel(content.aiProvider);
 
   return (
     <div className="border rounded-xl overflow-hidden">
@@ -492,9 +615,26 @@ function ContentPreview({ content, onCopy, onDownload, onRegenerate }: ContentPr
           <CheckCircle2 className="h-5 w-5 text-green-600" />
           <div>
             <p className="font-medium text-gray-900">Content Generated Successfully</p>
-            <p className="text-xs text-gray-500">
-              {content.wordCount} words • Generated in {(content.generationTimeMs / 1000).toFixed(1)}s
-            </p>
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span>{content.wordCount} words</span>
+              <span>•</span>
+              <span>Generated in {(content.generationTimeMs / 1000).toFixed(1)}s</span>
+              <span>•</span>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${providerInfo.color}`}>
+                {providerInfo.name}
+              </span>
+              {content.crawledPagesUsed && (
+                <>
+                  <span>•</span>
+                  <span>{content.crawledPagesUsed} pages used</span>
+                </>
+              )}
+            </div>
+            {content.fallbackReason && (
+              <p className="text-xs text-yellow-600 mt-1">
+                ⚠️ Fallback: {content.fallbackReason}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">

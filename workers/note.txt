@@ -1,0 +1,41 @@
+# 1. Content Engine Worker
+cd /Users/dac.dangvan/Documents/VIB/SEOTOOL/workers/content_engine
+npm run dev
+
+# 2. Crawler Worker  
+cd /Users/dac.dangvan/Documents/VIB/SEOTOOL/workers/crawler_worker
+npm run dev
+
+# 3. CWV Worker (Core Web Vitals)
+cd /Users/dac.dangvan/Documents/VIB/SEOTOOL/workers/cwv_worker
+npm run dev
+
+# 4. Entity Linking Agent
+cd /Users/dac.dangvan/Documents/VIB/SEOTOOL/workers/entity_linking_agent
+npm run dev
+
+# 5. GA4 Worker
+cd /Users/dac.dangvan/Documents/VIB/SEOTOOL/workers/ga4_worker
+npm run dev
+
+# 6. GSC Worker (Google Search Console)
+cd /Users/dac.dangvan/Documents/VIB/SEOTOOL/workers/gsc_worker
+npm run dev
+
+# 7. Keyword Intelligence (Python)
+cd /Users/dac.dangvan/Documents/VIB/SEOTOOL/workers/keyword_intelligence
+python -m src.main
+
+# 8. Monitoring Agent (Python)
+cd /Users/dac.dangvan/Documents/VIB/SEOTOOL/workers/monitoring_agent
+python -m monitoring_agent.main
+
+# 9. Technical SEO Agent
+cd /Users/dac.dangvan/Documents/VIB/SEOTOOL/workers/technical_seo_agent
+npm run dev
+
+# Kill port 3000 (Frontend)
+kill -9 $(lsof -t -i:3000) 2>/dev/null
+
+# Kill port 3001 (Backend)  
+kill -9 $(lsof -t -i:3001) 2>/dev/null

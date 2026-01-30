@@ -2,13 +2,16 @@
  * Content Repository
  * 
  * PostgreSQL persistence for generated content.
+ * Uses existing schema from database migrations.
  */
 
 import { Pool } from 'pg';
 import type {
   StoredContent,
-  ContentGenerationResult,
   ContentStatus,
+  ArticleOutline,
+  SeoMetadata,
+  FaqSchema,
 } from '../models';
 import { Logger } from '../logger';
 
@@ -22,6 +25,37 @@ export interface ContentRepository {
   updateStatus(id: string, status: ContentStatus): Promise<void>;
 }
 
+// Default values for mapping from simplified DB schema
+const defaultOutline: ArticleOutline = { h1: '', sections: [] };
+const defaultFaqSchema: FaqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [],
+};
+
+// Map internal status to DB status
+function toDbStatus(status: ContentStatus): string {
+  switch (status) {
+    case 'completed': return 'DRAFT';
+    case 'pending': return 'PENDING_REVIEW';
+    case 'generating': return 'DRAFT';
+    case 'failed': return 'REJECTED';
+    default: return 'DRAFT';
+  }
+}
+
+// Map DB status to internal status
+function fromDbStatus(status: string): ContentStatus {
+  switch (status?.toUpperCase()) {
+    case 'DRAFT': return 'completed' as ContentStatus;
+    case 'PENDING_REVIEW': return 'pending' as ContentStatus;
+    case 'APPROVED': return 'completed' as ContentStatus;
+    case 'REJECTED': return 'failed' as ContentStatus;
+    case 'PUBLISHED': return 'completed' as ContentStatus;
+    default: return 'pending' as ContentStatus;
+  }
+}
+
 export class PostgresContentRepository implements ContentRepository {
   private pool: Pool;
 
@@ -29,34 +63,11 @@ export class PostgresContentRepository implements ContentRepository {
     this.pool = new Pool({ connectionString });
   }
 
-  /**
-   * Initialize database schema
-   */
   async initialize(): Promise<void> {
     const client = await this.pool.connect();
     try {
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS generated_content (
-          id UUID PRIMARY KEY,
-          task_id UUID NOT NULL UNIQUE,
-          plan_id UUID NOT NULL,
-          primary_keyword VARCHAR(255) NOT NULL,
-          outline JSONB NOT NULL,
-          markdown_content TEXT NOT NULL,
-          html_content TEXT,
-          seo_metadata JSONB NOT NULL,
-          faq_schema JSONB NOT NULL,
-          word_count INTEGER NOT NULL,
-          status VARCHAR(50) NOT NULL,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_generated_content_task_id ON generated_content(task_id);
-        CREATE INDEX IF NOT EXISTS idx_generated_content_plan_id ON generated_content(plan_id);
-        CREATE INDEX IF NOT EXISTS idx_generated_content_status ON generated_content(status);
-      `);
-      logger.info('Database schema initialized');
+      await client.query('SELECT 1');
+      logger.info('Database connection verified');
     } finally {
       client.release();
     }
@@ -67,36 +78,34 @@ export class PostgresContentRepository implements ContentRepository {
     try {
       await client.query(
         `INSERT INTO generated_content (
-          id, task_id, plan_id, primary_keyword, outline, 
-          markdown_content, html_content, seo_metadata, faq_schema,
+          id, project_id, brief_id, title, content_markdown, 
+          content_html, meta_title, meta_description,
           word_count, status, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-        ON CONFLICT (task_id) DO UPDATE SET
-          outline = EXCLUDED.outline,
-          markdown_content = EXCLUDED.markdown_content,
-          html_content = EXCLUDED.html_content,
-          seo_metadata = EXCLUDED.seo_metadata,
-          faq_schema = EXCLUDED.faq_schema,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        ON CONFLICT (id) DO UPDATE SET
+          content_markdown = EXCLUDED.content_markdown,
+          content_html = EXCLUDED.content_html,
+          meta_title = EXCLUDED.meta_title,
+          meta_description = EXCLUDED.meta_description,
           word_count = EXCLUDED.word_count,
           status = EXCLUDED.status,
-          updated_at = CURRENT_TIMESTAMP`,
+          updated_at = EXCLUDED.updated_at`,
         [
           content.id,
-          content.taskId,
           content.planId,
+          content.taskId,
           content.primaryKeyword,
-          JSON.stringify(content.outline),
           content.markdownContent,
           content.htmlContent || null,
-          JSON.stringify(content.seoMetadata),
-          JSON.stringify(content.faqSchema),
+          content.seoMetadata?.metaTitle || content.primaryKeyword,
+          content.seoMetadata?.metaDescription || '',
           content.wordCount,
-          content.status,
+          toDbStatus(content.status),
           content.createdAt,
           content.updatedAt,
         ]
       );
-      logger.debug('Content saved', { id: content.id, taskId: content.taskId });
+      logger.info('Content saved', { id: content.id });
     } finally {
       client.release();
     }
@@ -109,11 +118,7 @@ export class PostgresContentRepository implements ContentRepository {
         'SELECT * FROM generated_content WHERE id = $1',
         [id]
       );
-
-      if (result.rows.length === 0) {
-        return null;
-      }
-
+      if (result.rows.length === 0) return null;
       return this.mapRowToContent(result.rows[0]);
     } finally {
       client.release();
@@ -124,14 +129,10 @@ export class PostgresContentRepository implements ContentRepository {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'SELECT * FROM generated_content WHERE task_id = $1',
+        'SELECT * FROM generated_content WHERE brief_id = $1',
         [taskId]
       );
-
-      if (result.rows.length === 0) {
-        return null;
-      }
-
+      if (result.rows.length === 0) return null;
       return this.mapRowToContent(result.rows[0]);
     } finally {
       client.release();
@@ -142,11 +143,10 @@ export class PostgresContentRepository implements ContentRepository {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'SELECT * FROM generated_content WHERE plan_id = $1 ORDER BY created_at DESC',
+        'SELECT * FROM generated_content WHERE project_id = $1 ORDER BY created_at DESC',
         [planId]
       );
-
-      return result.rows.map((row: Record<string, unknown>) => this.mapRowToContent(row));
+      return result.rows.map((row) => this.mapRowToContent(row));
     } finally {
       client.release();
     }
@@ -156,8 +156,8 @@ export class PostgresContentRepository implements ContentRepository {
     const client = await this.pool.connect();
     try {
       await client.query(
-        'UPDATE generated_content SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-        [status, id]
+        'UPDATE generated_content SET status = $1, updated_at = NOW() WHERE id = $2',
+        [toDbStatus(status), id]
       );
       logger.debug('Content status updated', { id, status });
     } finally {
@@ -165,21 +165,26 @@ export class PostgresContentRepository implements ContentRepository {
     }
   }
 
-  private mapRowToContent(row: Record<string, unknown>): StoredContent {
+  private mapRowToContent(row: any): StoredContent {
+    const seoMetadata: SeoMetadata = {
+      metaTitle: row.meta_title || row.title,
+      metaDescription: row.meta_description || '',
+    };
+
     return {
-      id: row.id as string,
-      taskId: row.task_id as string,
-      planId: row.plan_id as string,
-      primaryKeyword: row.primary_keyword as string,
-      outline: row.outline as StoredContent['outline'],
-      markdownContent: row.markdown_content as string,
-      htmlContent: row.html_content as string | undefined,
-      seoMetadata: row.seo_metadata as StoredContent['seoMetadata'],
-      faqSchema: row.faq_schema as StoredContent['faqSchema'],
-      wordCount: row.word_count as number,
-      status: row.status as ContentStatus,
-      createdAt: new Date(row.created_at as string),
-      updatedAt: new Date(row.updated_at as string),
+      id: row.id,
+      taskId: row.brief_id,
+      planId: row.project_id,
+      primaryKeyword: row.title,
+      outline: defaultOutline,
+      markdownContent: row.content_markdown || '',
+      htmlContent: row.content_html,
+      seoMetadata,
+      faqSchema: defaultFaqSchema,
+      wordCount: row.word_count || 0,
+      status: fromDbStatus(row.status),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
     };
   }
 
@@ -188,44 +193,37 @@ export class PostgresContentRepository implements ContentRepository {
   }
 }
 
-/**
- * In-memory repository for testing
- */
 export class InMemoryContentRepository implements ContentRepository {
-  private storage: Map<string, StoredContent> = new Map();
-  private taskIdIndex: Map<string, string> = new Map();
+  private contents: Map<string, StoredContent> = new Map();
 
   async save(content: StoredContent): Promise<void> {
-    this.storage.set(content.id, content);
-    this.taskIdIndex.set(content.taskId, content.id);
+    this.contents.set(content.id, content);
   }
 
   async findById(id: string): Promise<StoredContent | null> {
-    return this.storage.get(id) || null;
+    return this.contents.get(id) || null;
   }
 
   async findByTaskId(taskId: string): Promise<StoredContent | null> {
-    const id = this.taskIdIndex.get(taskId);
-    if (!id) return null;
-    return this.storage.get(id) || null;
+    for (const content of this.contents.values()) {
+      if (content.taskId === taskId) return content;
+    }
+    return null;
   }
 
   async findByPlanId(planId: string): Promise<StoredContent[]> {
-    return Array.from(this.storage.values())
-      .filter((c) => c.planId === planId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    const results: StoredContent[] = [];
+    for (const content of this.contents.values()) {
+      if (content.planId === planId) results.push(content);
+    }
+    return results;
   }
 
   async updateStatus(id: string, status: ContentStatus): Promise<void> {
-    const content = this.storage.get(id);
+    const content = this.contents.get(id);
     if (content) {
       content.status = status;
       content.updatedAt = new Date();
     }
-  }
-
-  clear(): void {
-    this.storage.clear();
-    this.taskIdIndex.clear();
   }
 }

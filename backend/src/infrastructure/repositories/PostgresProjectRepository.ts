@@ -120,11 +120,18 @@ export class PostgresProjectRepository {
     const query = 'SELECT * FROM projects WHERE id = $1';
 
     try {
+      this.logger.debug('Finding project by ID', { id });
       const result = await this.pool.query(query, [id]);
+      this.logger.debug('Query result', { rowCount: result.rows.length });
       if (result.rows.length === 0) return null;
       return this.mapRowToProject(result.rows[0]);
-    } catch (error) {
-      this.logger.error('Failed to find project by ID', { error, id });
+    } catch (error: any) {
+      this.logger.error('Failed to find project by ID', { 
+        error: error.message, 
+        code: error.code,
+        stack: error.stack,
+        id 
+      });
       throw new DatabaseError('Failed to find project');
     }
   }

@@ -15,7 +15,9 @@
     "db:migrate:down": "node-pg-migrate down",
     "test:cwv": "tsx src/crawler/cwv/test_cwv_runner.ts",
     "test:crawler": "tsx src/crawler/test_full_crawler.ts",
-    "test:rendered": "tsx src/crawler/js-render/test_rendered_crawler.ts"
+    "test:rendered": "tsx src/crawler/js-render/test_rendered_crawler.ts",
+    "worker:crawler": "tsx src/crawler/standalone_worker.ts",
+    "worker:crawler:prod": "node dist/crawler/standalone_worker.js"
   },
   "keywords": [
     "seo",

@@ -27,6 +27,7 @@ interface CrawlStatusChartProps {
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload as StatusCodeData;
+    const percentage = typeof data.percentage === 'string' ? parseFloat(data.percentage) : data.percentage;
     return (
       <div className="bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-100">
         <p className="font-semibold text-gray-800">{data.label}</p>
@@ -34,7 +35,7 @@ const CustomTooltip = ({ active, payload }: any) => {
           <span className="font-medium">{data.count.toLocaleString()}</span> pages
         </p>
         <p className="text-sm text-gray-500">
-          {data.percentage.toFixed(1)}% of total
+          {percentage.toFixed(1)}% of total
         </p>
       </div>
     );
@@ -66,7 +67,8 @@ const CustomLegend = ({ payload }: any) => {
 
 export function CrawlStatusChart({ data, title = 'Status Code Distribution' }: CrawlStatusChartProps) {
   const totalPages = data.reduce((sum, d) => sum + d.count, 0);
-  const successRate = data.find(d => d.code === '2xx')?.percentage || 0;
+  const successRateRaw = data.find(d => d.code === '2xx')?.percentage || 0;
+  const successRate = typeof successRateRaw === 'string' ? parseFloat(successRateRaw) : successRateRaw;
 
   if (data.length === 0 || totalPages === 0) {
     return (

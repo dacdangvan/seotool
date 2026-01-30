@@ -9,6 +9,8 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useProject } from '@/context/ProjectContext';
 import { 
   Globe, 
   FileText, 
@@ -27,6 +29,8 @@ import {
   Gauge,
   Layers,
   List,
+  Plus,
+  Search,
 } from 'lucide-react';
 import { Sidebar } from '@/components/Sidebar';
 import { RoleGuard } from '@/components/RoleGuard';
@@ -64,10 +68,14 @@ import {
   type DiffCategory,
 } from '@/components/crawl/DiffReportBadge';
 import { UrlInventoryTable, CrawlCoverageBar } from '@/components/crawl/UrlInventoryTable';
+import { AddUrlsModal } from '@/components/crawl/AddUrlsModal';
 import { useUrlInventory, useCrawlCoverage } from '@/hooks/useUrlInventory';
 
 // Tab types
 type TabType = 'inventory' | 'results';
+
+// Filter type for Quick Actions from dashboard
+type PageFilterType = 'all' | 'issues' | 'critical' | '4xx' | 'noindex' | 'slow';
 
 // Tab component
 interface TabsProps {
@@ -236,6 +244,15 @@ function PageRow({
           )}
         </td>
         <td className="px-4 py-3 text-sm text-gray-600">{page.responseTime}ms</td>
+        <td className="px-4 py-3 text-sm">
+          {page.loadTime > 0 ? (
+            <span className={page.loadTime <= 2000 ? 'text-green-600' : page.loadTime <= 3000 ? 'text-amber-600' : 'text-red-600'}>
+              {page.loadTime >= 1000 ? `${(page.loadTime / 1000).toFixed(2)}s` : `${page.loadTime}ms`}
+            </span>
+          ) : (
+            <span className="text-gray-400">-</span>
+          )}
+        </td>
         {/* CWV Columns */}
         <td className="px-4 py-3" onClick={(e) => { e.stopPropagation(); onCWVClick?.(); }}>
           <CWVScoreCell data={cwvData} device={cwvDevice} onClick={onCWVClick} />
@@ -374,7 +391,21 @@ function CrawlResultsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedPages, setExpandedPages] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<'all' | 'issues' | 'critical'>('all');
+  const [filter, setFilter] = useState<PageFilterType>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  
+  // Read filter from URL params and switch to results tab if filter is set
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const urlFilter = searchParams.get('filter');
+    if (urlFilter && ['all', 'issues', 'critical', '4xx', 'noindex', 'slow'].includes(urlFilter)) {
+      setFilter(urlFilter as PageFilterType);
+      // Switch to results tab when filter is set from Quick Actions
+      if (urlFilter !== 'all') {
+        setActiveTab('results');
+      }
+    }
+  }, [searchParams]);
   
   // CWV state
   const [cwvData, setCwvData] = useState<Map<string, PageCWV[]>>(new Map());
@@ -391,8 +422,12 @@ function CrawlResultsContent() {
   const [diffReports, setDiffReports] = useState<Map<string, DiffReport>>(new Map());
   const [diffPanelUrl, setDiffPanelUrl] = useState<string | null>(null);
   
+  // Add URLs Modal state
+  const [showAddUrlsModal, setShowAddUrlsModal] = useState(false);
+  
   // URL Inventory hooks (Section 11)
-  const projectId = 'default'; // TODO: Get from project context
+  const { currentProject } = useProject();
+  const projectId = currentProject?.id || 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'; // Use real project ID
   const {
     items: inventoryItems,
     isLoading: inventoryLoading,
@@ -416,11 +451,24 @@ function CrawlResultsContent() {
       const result = await fetchCrawlResult();
       setData(result);
       
-      // Load CWV data for all pages
+      // Load CWV data for all pages (both mobile and desktop)
       if (result.pages.length > 0) {
         const urls = result.pages.map(p => p.url);
-        const cwv = await getBatchPageCWV('default', urls);
-        setCwvData(cwv);
+        
+        // Fetch both mobile and desktop CWV data
+        const [mobileCwv, desktopCwv] = await Promise.all([
+          getBatchPageCWV(projectId, urls, 'mobile'),
+          getBatchPageCWV(projectId, urls, 'desktop'),
+        ]);
+        
+        // Merge mobile and desktop data into single Map
+        const mergedCwv = new Map<string, PageCWV[]>();
+        for (const url of urls) {
+          const mobileData = mobileCwv.get(url) || [];
+          const desktopData = desktopCwv.get(url) || [];
+          mergedCwv.set(url, [...mobileData, ...desktopData]);
+        }
+        setCwvData(mergedCwv);
         
         // Generate mock render mode data (in production, this would come from crawl result)
         const renderModes = new Map<string, { mode: RenderMode; renderTime?: number }>();
@@ -527,7 +575,7 @@ function CrawlResultsContent() {
   
   useEffect(() => {
     loadData();
-  }, []);
+  }, [projectId]);
   
   const handleRefresh = () => {
     clearCrawlCache();
@@ -581,13 +629,23 @@ function CrawlResultsContent() {
   const job = data?.job;
   const summary = data?.summary;
   const pages = data?.pages || [];
-  const scores = summary ? calculateSEOHealthScore(summary) : null;
+  const scores = summary ? calculateSEOHealthScore(summary, pages) : null;
   
   // Filter pages
   let filteredPages = pages.filter(page => {
     if (filter === 'all') return true;
     if (filter === 'issues') return page.issues.length > 0;
     if (filter === 'critical') return page.issues.some(i => i.severity === 'critical');
+    // Quick Action filters
+    if (filter === '4xx') return page.statusCode >= 400 && page.statusCode < 500;
+    if (filter === 'noindex') return page.hasNoindex === true;
+    if (filter === 'slow') {
+      // Filter pages with slow load time (> 3 seconds) or poor CWV
+      const pageCwv = cwvData.get(page.url);
+      const hasSlowLoadTime = page.loadTime && page.loadTime > 3000;
+      const hasPoorLCP = pageCwv?.some(c => c.lcp && c.lcp.value > 2500);
+      return hasSlowLoadTime || hasPoorLCP;
+    }
     return true;
   });
   
@@ -602,6 +660,16 @@ function CrawlResultsContent() {
   if (jsRiskFilter !== 'all') {
     filteredPages = filteredPages.filter(page => 
       diffReports.get(page.url)?.jsDependencyRisk === jsRiskFilter
+    );
+  }
+  
+  // Filter by search query
+  if (searchQuery.trim()) {
+    const query = searchQuery.toLowerCase().trim();
+    filteredPages = filteredPages.filter(page => 
+      page.url.toLowerCase().includes(query) ||
+      page.title?.toLowerCase().includes(query) ||
+      page.metaDescription?.toLowerCase().includes(query)
     );
   }
   
@@ -632,6 +700,13 @@ function CrawlResultsContent() {
             </p>
           </div>
           <div className="flex gap-2">
+            <button
+              onClick={() => setShowAddUrlsModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              <Plus className="w-4 h-4" />
+              Add URLs
+            </button>
             <button
               onClick={handleRefresh}
               className="flex items-center gap-2 px-4 py-2 bg-white border rounded-lg hover:bg-gray-50"
@@ -716,6 +791,8 @@ function CrawlResultsContent() {
                 filteredPages={filteredPages}
                 filter={filter}
                 setFilter={setFilter}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
                 renderModeFilter={renderModeFilter}
                 setRenderModeFilter={setRenderModeFilter}
                 jsRiskFilter={jsRiskFilter}
@@ -746,6 +823,18 @@ function CrawlResultsContent() {
           mobileData={selectedPageCWV?.find(d => d.device === 'mobile')}
           desktopData={selectedPageCWV?.find(d => d.device === 'desktop')}
         />
+        
+        {/* Add URLs Modal */}
+        <AddUrlsModal
+          isOpen={showAddUrlsModal}
+          onClose={() => setShowAddUrlsModal(false)}
+          projectId={projectId}
+          projectDomain={job?.config?.baseUrl || currentProject?.domain || ''}
+          onSuccess={() => {
+            refreshInventory();
+            refreshCoverage();
+          }}
+        />
       </main>
     </div>
   );
@@ -757,8 +846,10 @@ interface SeoResultsContentProps {
   summary: CrawlResult['summary'];
   scores: ReturnType<typeof calculateSEOHealthScore>;
   filteredPages: PageSEOData[];
-  filter: 'all' | 'issues' | 'critical';
-  setFilter: (f: 'all' | 'issues' | 'critical') => void;
+  filter: PageFilterType;
+  setFilter: (f: PageFilterType) => void;
+  searchQuery: string;
+  setSearchQuery: (q: string) => void;
   renderModeFilter: RenderMode | 'all';
   setRenderModeFilter: (f: RenderMode | 'all') => void;
   jsRiskFilter: JsDependencyRisk | 'all';
@@ -785,6 +876,8 @@ function SeoResultsContent({
   filteredPages,
   filter,
   setFilter,
+  searchQuery,
+  setSearchQuery,
   renderModeFilter,
   setRenderModeFilter,
   jsRiskFilter,
@@ -937,21 +1030,45 @@ function SeoResultsContent({
       
       {/* Pages Table */}
       <div className="bg-white rounded-lg shadow-sm border">
-        <div className="p-4 border-b flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <h3 className="font-semibold">Crawled Pages ({filteredPages.length})</h3>
-            <RenderModeStats 
-              htmlCount={renderStats.htmlCount} 
-              jsRenderedCount={renderStats.jsRenderedCount} 
-              total={renderStats.total} 
-            />
-            <JsRiskStats 
-              highCount={jsRiskStats.highCount}
-              mediumCount={jsRiskStats.mediumCount}
-              lowCount={jsRiskStats.lowCount}
-            />
+        {/* Header Row 1: Title + Search */}
+        <div className="p-4 border-b">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-4">
+              <h3 className="font-semibold">Crawled Pages ({filteredPages.length})</h3>
+              <RenderModeStats 
+                htmlCount={renderStats.htmlCount} 
+                jsRenderedCount={renderStats.jsRenderedCount} 
+                total={renderStats.total} 
+              />
+              <JsRiskStats 
+                highCount={jsRiskStats.highCount}
+                mediumCount={jsRiskStats.mediumCount}
+                lowCount={jsRiskStats.lowCount}
+              />
+            </div>
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by URL, title, or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-4 py-2 w-80 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-4">
+          
+          {/* Header Row 2: Filters */}
+          <div className="flex flex-wrap items-center gap-4">
             {/* Render Mode Filter */}
             <RenderModeFilter value={renderModeFilter} onChange={setRenderModeFilter} />
             
@@ -980,7 +1097,7 @@ function SeoResultsContent({
             </div>
             
             {/* Filters */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setFilter('all')}
                 className={`px-3 py-1 rounded text-sm ${filter === 'all' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100'}`}
@@ -999,6 +1116,24 @@ function SeoResultsContent({
               >
                 Critical Only
               </button>
+              <button
+                onClick={() => setFilter('4xx')}
+                className={`px-3 py-1 rounded text-sm ${filter === '4xx' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100'}`}
+              >
+                4xx Errors
+              </button>
+              <button
+                onClick={() => setFilter('noindex')}
+                className={`px-3 py-1 rounded text-sm ${filter === 'noindex' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100'}`}
+              >
+                Noindex
+              </button>
+              <button
+                onClick={() => setFilter('slow')}
+                className={`px-3 py-1 rounded text-sm ${filter === 'slow' ? 'bg-pink-100 text-pink-700' : 'bg-gray-100'}`}
+              >
+                Slow Pages
+              </button>
             </div>
           </div>
         </div>
@@ -1014,6 +1149,7 @@ function SeoResultsContent({
                 <JsRiskHeader />
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Response</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Load Time</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 <div className="flex items-center gap-1">
                   Score

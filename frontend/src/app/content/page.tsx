@@ -3,17 +3,23 @@
 /**
  * Content Management Page
  * 
- * v0.8 - SEO Content CRUD with status workflow + Planning integration
+ * v0.9 - SEO Content CRUD with localStorage persistence
  * 
- * Added Section 12 integration link to Content Planning
+ * Now syncs with AI Content Writer generated content via content.service
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useProject } from '@/context/ProjectContext';
 import { RoleGuard, useCanAccess } from '@/components/RoleGuard';
 import { Sidebar } from '@/components/Sidebar';
 import { SEOContent, ContentStatus, ContentCreateInput } from '@/types/auth';
+import {
+  getAllContent,
+  getContentByProject,
+  updateContentStatus,
+  deleteContent as deleteContentService,
+} from '@/services/content.service';
 import {
   Plus,
   FileText,
@@ -30,65 +36,8 @@ import {
   Sparkles,
   Target,
   ArrowRight,
+  RefreshCw,
 } from 'lucide-react';
-
-// Mock content data
-const MOCK_CONTENT: SEOContent[] = [
-  {
-    id: 'content-1',
-    projectId: 'project-1',
-    title: 'Hướng dẫn mở tài khoản ngân hàng online',
-    slug: 'huong-dan-mo-tai-khoan-ngan-hang-online',
-    status: 'published',
-    primaryKeyword: 'mở tài khoản ngân hàng online',
-    content: '...',
-    metaTitle: 'Hướng dẫn mở tài khoản ngân hàng online 2024',
-    metaDescription: 'Tìm hiểu cách mở tài khoản ngân hàng online nhanh chóng...',
-    createdBy: 'user-2',
-    createdAt: '2024-03-01T00:00:00Z',
-    updatedAt: '2024-03-10T10:00:00Z',
-  },
-  {
-    id: 'content-2',
-    projectId: 'project-1',
-    title: 'So sánh lãi suất tiết kiệm các ngân hàng',
-    slug: 'so-sanh-lai-suat-tiet-kiem',
-    status: 'review',
-    primaryKeyword: 'lãi suất tiết kiệm',
-    content: '...',
-    metaTitle: 'So sánh lãi suất tiết kiệm các ngân hàng tháng 3/2024',
-    metaDescription: 'Bảng so sánh lãi suất tiết kiệm mới nhất...',
-    createdBy: 'user-2',
-    createdAt: '2024-03-05T00:00:00Z',
-    updatedAt: '2024-03-12T14:00:00Z',
-  },
-  {
-    id: 'content-3',
-    projectId: 'project-1',
-    title: 'Cách đăng ký thẻ tín dụng VIB',
-    slug: 'cach-dang-ky-the-tin-dung-vib',
-    status: 'draft',
-    primaryKeyword: 'thẻ tín dụng VIB',
-    content: '...',
-    createdBy: 'user-2',
-    createdAt: '2024-03-14T00:00:00Z',
-    updatedAt: '2024-03-14T00:00:00Z',
-  },
-  {
-    id: 'content-4',
-    projectId: 'project-1',
-    title: 'Ưu đãi vay mua nhà tháng 3',
-    slug: 'uu-dai-vay-mua-nha-thang-3',
-    status: 'approved',
-    primaryKeyword: 'vay mua nhà',
-    content: '...',
-    metaTitle: 'Ưu đãi vay mua nhà VIB - Lãi suất từ 6.5%',
-    metaDescription: 'Chương trình ưu đãi vay mua nhà với lãi suất hấp dẫn...',
-    createdBy: 'user-2',
-    createdAt: '2024-03-08T00:00:00Z',
-    updatedAt: '2024-03-13T16:00:00Z',
-  },
-];
 
 const STATUS_CONFIG: Record<ContentStatus, { label: string; color: string; icon: React.ElementType }> = {
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
@@ -109,18 +58,40 @@ function ContentPageContent() {
   const [editingContent, setEditingContent] = useState<SEOContent | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  // Load content
-  useEffect(() => {
+  // Load content from service
+  const loadContent = useCallback(() => {
     setIsLoading(true);
-    // Simulate API call
+    // Small delay for UX
     setTimeout(() => {
-      const filtered = MOCK_CONTENT.filter(c => 
-        !currentProject || c.projectId === currentProject.id
-      );
-      setContent(filtered);
+      try {
+        const allContent = currentProject 
+          ? getContentByProject(currentProject.id)
+          : getAllContent();
+        setContent(allContent);
+      } catch (error) {
+        console.error('Failed to load content:', error);
+        setContent([]);
+      }
       setIsLoading(false);
-    }, 500);
+    }, 300);
   }, [currentProject]);
+
+  // Load content on mount and project change
+  useEffect(() => {
+    loadContent();
+  }, [loadContent]);
+
+  // Listen for content updates from other components (e.g., AI Content Writer)
+  useEffect(() => {
+    const handleContentUpdated = () => {
+      loadContent();
+    };
+
+    window.addEventListener('content-updated', handleContentUpdated);
+    return () => {
+      window.removeEventListener('content-updated', handleContentUpdated);
+    };
+  }, [loadContent]);
 
   // Filter content
   const filteredContent = content.filter(c => {
@@ -140,17 +111,28 @@ function ContentPageContent() {
   };
 
   const handleStatusChange = (contentId: string, newStatus: ContentStatus) => {
-    setContent(prev => 
-      prev.map(c => c.id === contentId ? { ...c, status: newStatus, updatedAt: new Date().toISOString() } : c)
-    );
+    const updated = updateContentStatus(contentId, newStatus);
+    if (updated) {
+      setContent(prev => 
+        prev.map(c => c.id === contentId ? updated : c)
+      );
+    }
     setOpenMenuId(null);
   };
 
   const handleDelete = (contentId: string) => {
     if (confirm('Are you sure you want to delete this content?')) {
-      setContent(prev => prev.filter(c => c.id !== contentId));
+      const deleted = deleteContentService(contentId);
+      if (deleted) {
+        setContent(prev => prev.filter(c => c.id !== contentId));
+      }
     }
     setOpenMenuId(null);
+  };
+
+  // Handle refresh button
+  const handleRefresh = () => {
+    loadContent();
   };
 
   return (
@@ -166,6 +148,13 @@ function ContentPageContent() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={handleRefresh}
+              className="inline-flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Refresh content list"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
             <Link
               href="/content/generate"
               className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-colors shadow-sm"

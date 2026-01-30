@@ -137,15 +137,68 @@ export class PostgresSEOMetricsRepository {
   // ===========================================================================
 
   async getTrafficMetrics(projectId: string, range: DateRange): Promise<SEOTrafficMetrics[]> {
-    const query = `
+    // Get GA4 traffic data
+    const ga4Query = `
       SELECT * FROM seo_traffic_metrics 
       WHERE project_id = $1 AND date >= $2 AND date <= $3
       ORDER BY date DESC
     `;
 
+    // Get aggregated GSC search analytics data
+    const gscQuery = `
+      SELECT 
+        date,
+        SUM(clicks) as total_clicks,
+        SUM(impressions) as total_impressions,
+        AVG(ctr) as avg_ctr,
+        AVG(position) as avg_position
+      FROM gsc_search_analytics 
+      WHERE project_id = $1 AND date >= $2 AND date <= $3
+      GROUP BY date
+      ORDER BY date DESC
+    `;
+
     try {
-      const result = await this.pool.query(query, [projectId, range.startDate, range.endDate]);
-      return result.rows.map(row => this.mapTrafficRow(row));
+      // Execute both queries in parallel
+      const [ga4Result, gscResult] = await Promise.all([
+        this.pool.query(ga4Query, [projectId, range.startDate, range.endDate]),
+        this.pool.query(gscQuery, [projectId, range.startDate, range.endDate])
+      ]);
+
+      // Create maps for easy lookup
+      const gscDataMap = new Map();
+      gscResult.rows.forEach(row => {
+        gscDataMap.set(row.date.toISOString().split('T')[0], {
+          clicks: parseInt(row.total_clicks) || 0,
+          impressions: parseInt(row.total_impressions) || 0,
+          ctr: parseFloat(row.avg_ctr) || 0,
+          position: parseFloat(row.avg_position) || 0,
+        });
+      });
+
+      // Merge GA4 and GSC data
+      const mergedMetrics = ga4Result.rows.map(ga4Row => {
+        const dateKey = ga4Row.date.toISOString().split('T')[0];
+        const gscData = gscDataMap.get(dateKey);
+
+        return {
+          projectId: ga4Row.project_id,
+          date: ga4Row.date,
+          // GA4 traffic data
+          organicTraffic: parseInt(ga4Row.organic_traffic) || 0,
+          totalTraffic: parseInt(ga4Row.total_traffic) || 0,
+          bounceRate: parseFloat(ga4Row.bounce_rate) || 0,
+          avgSessionDuration: parseInt(ga4Row.avg_session_duration) || 0,
+          pagesPerSession: parseFloat(ga4Row.pages_per_session) || 0,
+          // GSC search data (prefer over GA4 estimates)
+          impressions: gscData?.impressions || parseInt(ga4Row.impressions) || 0,
+          clicks: gscData?.clicks || parseInt(ga4Row.clicks) || 0,
+          ctr: gscData?.ctr || parseFloat(ga4Row.ctr) || 0,
+          averagePosition: gscData?.position || parseFloat(ga4Row.average_position) || 0,
+        };
+      });
+
+      return mergedMetrics;
     } catch (error) {
       this.logger.error('Failed to get traffic metrics', { error, projectId });
       throw new DatabaseError('Failed to get traffic metrics');
@@ -153,20 +206,69 @@ export class PostgresSEOMetricsRepository {
   }
 
   async getLatestTrafficMetrics(projectId: string): Promise<SEOTrafficMetrics | null> {
-    const query = `
+    // Get latest GA4 traffic data
+    const ga4Query = `
       SELECT * FROM seo_traffic_metrics 
       WHERE project_id = $1 
       ORDER BY date DESC 
       LIMIT 1
     `;
 
+    // Get latest GSC search analytics data
+    const gscQuery = `
+      SELECT 
+        date,
+        SUM(clicks) as total_clicks,
+        SUM(impressions) as total_impressions,
+        AVG(ctr) as avg_ctr,
+        AVG(position) as avg_position
+      FROM gsc_search_analytics 
+      WHERE project_id = $1 
+      ORDER BY date DESC 
+      LIMIT 1
+    `;
+
     try {
-      const result = await this.pool.query(query, [projectId]);
-      if (result.rows.length === 0) return null;
-      return this.mapTrafficRow(result.rows[0]);
+      // Execute both queries in parallel
+      const [ga4Result, gscResult] = await Promise.all([
+        this.pool.query(ga4Query, [projectId]),
+        this.pool.query(gscQuery, [projectId])
+      ]);
+
+      if (ga4Result.rows.length === 0) return null;
+
+      const ga4Row = ga4Result.rows[0];
+      const gscRow = gscResult.rows.length > 0 ? gscResult.rows[0] : null;
+
+      // Merge GA4 and GSC data for the latest date
+      const mergedMetric = {
+        projectId: ga4Row.project_id,
+        date: ga4Row.date,
+        // GA4 traffic data
+        organicTraffic: parseInt(ga4Row.organic_traffic) || 0,
+        totalTraffic: parseInt(ga4Row.total_traffic) || 0,
+        bounceRate: parseFloat(ga4Row.bounce_rate) || 0,
+        avgSessionDuration: parseInt(ga4Row.avg_session_duration) || 0,
+        pagesPerSession: parseFloat(ga4Row.pages_per_session) || 0,
+        // GSC search data (prefer over GA4 estimates, fallback to GA4 if no GSC data)
+        impressions: gscRow ? parseInt(gscRow.total_impressions) || 0 : parseInt(ga4Row.impressions) || 0,
+        clicks: gscRow ? parseInt(gscRow.total_clicks) || 0 : parseInt(ga4Row.clicks) || 0,
+        ctr: gscRow ? parseFloat(gscRow.avg_ctr) || 0 : parseFloat(ga4Row.ctr) || 0,
+        averagePosition: gscRow ? parseFloat(gscRow.avg_position) || 0 : parseFloat(ga4Row.average_position) || 0,
+      };
+
+      return mergedMetric;
     } catch (error) {
       this.logger.error('Failed to get latest traffic metrics', { error, projectId });
-      throw new DatabaseError('Failed to get traffic metrics');
+      // If combined query fails, fallback to GA4 only
+      try {
+        const ga4Result = await this.pool.query(ga4Query, [projectId]);
+        if (ga4Result.rows.length === 0) return null;
+        return this.mapTrafficRow(ga4Result.rows[0]);
+      } catch (fallbackError) {
+        this.logger.error('Fallback to GA4 only also failed', { fallbackError, projectId });
+        throw new DatabaseError('Failed to get traffic metrics');
+      }
     }
   }
 
@@ -450,6 +552,156 @@ export class PostgresSEOMetricsRepository {
     }
   }
 
+  /**
+   * Create a single recommendation
+   * Used by AI agents to store generated recommendations
+   */
+  async createRecommendation(recommendation: Omit<SEORecommendation, 'id' | 'createdAt'>): Promise<SEORecommendation> {
+    const query = `
+      INSERT INTO seo_recommendations (
+        project_id, category, priority, title, description, 
+        impact, effort, status, auto_executable, action_data
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *
+    `;
+
+    const values = [
+      recommendation.projectId,
+      recommendation.category,
+      recommendation.priority,
+      recommendation.title,
+      recommendation.description,
+      recommendation.impact,
+      recommendation.effort,
+      recommendation.status || 'pending',
+      recommendation.autoExecutable || false,
+      JSON.stringify(recommendation.actionData || {}),
+    ];
+
+    try {
+      const result = await this.pool.query(query, values);
+      this.logger.info('Recommendation created', { 
+        id: result.rows[0].id, 
+        projectId: recommendation.projectId,
+        category: recommendation.category,
+        title: recommendation.title 
+      });
+      return this.mapRecommendationRow(result.rows[0]);
+    } catch (error) {
+      this.logger.error('Failed to create recommendation', { error, recommendation });
+      throw new DatabaseError('Failed to create recommendation');
+    }
+  }
+
+  /**
+   * Create multiple recommendations in a batch
+   * Used by AI agents to store multiple recommendations at once
+   */
+  async createRecommendations(recommendations: Omit<SEORecommendation, 'id' | 'createdAt'>[]): Promise<SEORecommendation[]> {
+    if (recommendations.length === 0) return [];
+
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const createdRecommendations: SEORecommendation[] = [];
+
+      for (const rec of recommendations) {
+        const query = `
+          INSERT INTO seo_recommendations (
+            project_id, category, priority, title, description, 
+            impact, effort, status, auto_executable, action_data
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          RETURNING *
+        `;
+
+        const values = [
+          rec.projectId,
+          rec.category,
+          rec.priority,
+          rec.title,
+          rec.description,
+          rec.impact,
+          rec.effort,
+          rec.status || 'pending',
+          rec.autoExecutable || false,
+          JSON.stringify(rec.actionData || {}),
+        ];
+
+        const result = await client.query(query, values);
+        createdRecommendations.push(this.mapRecommendationRow(result.rows[0]));
+      }
+
+      await client.query('COMMIT');
+      
+      this.logger.info('Batch recommendations created', { 
+        count: createdRecommendations.length,
+        projectId: recommendations[0]?.projectId 
+      });
+
+      return createdRecommendations;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      this.logger.error('Failed to create batch recommendations', { error });
+      throw new DatabaseError('Failed to create batch recommendations');
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Delete recommendations by project and optionally by source
+   * Used to clean up before regenerating recommendations
+   */
+  async deleteRecommendations(projectId: string, options?: { 
+    source?: string;
+    category?: string;
+    olderThan?: Date;
+  }): Promise<number> {
+    let query = `DELETE FROM seo_recommendations WHERE project_id = $1`;
+    const values: any[] = [projectId];
+    let paramIndex = 2;
+
+    if (options?.category) {
+      query += ` AND category = $${paramIndex++}`;
+      values.push(options.category);
+    }
+
+    if (options?.source) {
+      query += ` AND action_data->>'source' = $${paramIndex++}`;
+      values.push(options.source);
+    }
+
+    if (options?.olderThan) {
+      query += ` AND created_at < $${paramIndex++}`;
+      values.push(options.olderThan);
+    }
+
+    // Only delete pending recommendations (don't delete in_progress or completed)
+    query += ` AND status = 'pending'`;
+
+    try {
+      this.logger.debug('Deleting recommendations', { query, values });
+      const result = await this.pool.query(query, values);
+      const deletedCount = result.rowCount ?? 0;
+      this.logger.info('Recommendations deleted', { 
+        projectId, 
+        count: deletedCount,
+        options 
+      });
+      return deletedCount;
+    } catch (error: any) {
+      this.logger.error('Failed to delete recommendations', { 
+        error: error.message, 
+        stack: error.stack,
+        projectId,
+        query,
+        values 
+      });
+      throw new DatabaseError('Failed to delete recommendations');
+    }
+  }
+
   // ===========================================================================
   // DASHBOARD SUMMARY
   // ===========================================================================
@@ -482,6 +734,219 @@ export class PostgresSEOMetricsRepository {
       forecasts,
       recommendations,
     };
+  }
+
+  /**
+   * Get comprehensive dashboard summary V2 with all real data
+   * No hardcoded values - everything from database
+   */
+  async getDashboardSummaryV2(projectId: string): Promise<{
+    traffic: SEOTrafficMetrics | null;
+    trafficHistory: SEOTrafficMetrics[];
+    keywordStats: { total: number; top3: number; top10: number; top100: number; avgPosition: number };
+    keywordChanges: { top3Change: number; top10Change: number };
+    technicalHealth: SEOTechnicalHealth | null;
+    technicalHealthHistory: SEOTechnicalHealth[];
+    backlinks: SEOBacklinkMetrics | null;
+    kpi: SEOKPISnapshot | null;
+    forecasts: SEOForecast[];
+    recommendations: SEORecommendation[];
+    contentStats: { totalPages: number; highPerforming: number; needsOptimization: number; newContent: number };
+    crawlStats: { totalPages: number; healthyPages: number; errorPages: number };
+  }> {
+    // Get date range for history (last 30 days)
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 30);
+
+    // Get date for previous period (for comparison)
+    const previousStartDate = new Date();
+    previousStartDate.setDate(previousStartDate.getDate() - 60);
+    const previousEndDate = new Date();
+    previousEndDate.setDate(previousEndDate.getDate() - 30);
+
+    const [
+      traffic,
+      trafficHistory,
+      previousTraffic,
+      keywordStats,
+      previousKeywordStats,
+      technicalHealth,
+      technicalHealthHistory,
+      backlinks,
+      kpi,
+      forecasts,
+      recommendations,
+      contentStats,
+      crawlStats,
+    ] = await Promise.all([
+      this.getLatestTrafficMetrics(projectId),
+      this.getTrafficMetrics(projectId, { startDate, endDate }),
+      this.getTrafficMetrics(projectId, { startDate: previousStartDate, endDate: previousEndDate }),
+      this.getKeywordStats(projectId),
+      this.getKeywordStatsAtDate(projectId, previousEndDate),
+      this.getLatestTechnicalHealth(projectId),
+      this.getTechnicalHealth(projectId, { startDate, endDate }),
+      this.getLatestBacklinkMetrics(projectId),
+      this.getLatestKPISnapshot(projectId),
+      this.getForecasts(projectId),
+      this.getRecommendations(projectId, { status: 'pending', limit: 10 }),
+      this.getContentStats(projectId),
+      this.getCrawlStats(projectId),
+    ]);
+
+    // Calculate keyword changes
+    const keywordChanges = {
+      top3Change: keywordStats.top3 - (previousKeywordStats?.top3 || 0),
+      top10Change: keywordStats.top10 - (previousKeywordStats?.top10 || 0),
+    };
+
+    return {
+      traffic,
+      trafficHistory,
+      keywordStats,
+      keywordChanges,
+      technicalHealth,
+      technicalHealthHistory,
+      backlinks,
+      kpi,
+      forecasts,
+      recommendations,
+      contentStats,
+      crawlStats,
+    };
+  }
+
+  /**
+   * Get keyword stats at a specific date (for comparison)
+   */
+  async getKeywordStatsAtDate(projectId: string, date: Date): Promise<{
+    total: number;
+    top3: number;
+    top10: number;
+    top100: number;
+    avgPosition: number;
+  } | null> {
+    // For now, return current stats - in production, this should query historical data
+    // or use seo_kpi_snapshots table which stores historical keyword stats
+    const query = `
+      SELECT 
+        total_keywords as total,
+        keywords_top_3 as top3,
+        keywords_top_10 as top10,
+        keywords_top_100 as top100,
+        average_position as avg_position
+      FROM seo_kpi_snapshots 
+      WHERE project_id = $1 AND date <= $2
+      ORDER BY date DESC
+      LIMIT 1
+    `;
+
+    try {
+      const result = await this.pool.query(query, [projectId, date]);
+      if (result.rows.length === 0) return null;
+      const row = result.rows[0];
+      return {
+        total: parseInt(row.total) || 0,
+        top3: parseInt(row.top3) || 0,
+        top10: parseInt(row.top10) || 0,
+        top100: parseInt(row.top100) || 0,
+        avgPosition: parseFloat(row.avg_position) || 0,
+      };
+    } catch (error) {
+      this.logger.error('Failed to get keyword stats at date', { error, projectId, date });
+      return null;
+    }
+  }
+
+  /**
+   * Get content statistics from seo_content_metrics and crawled_pages
+   */
+  async getContentStats(projectId: string): Promise<{
+    totalPages: number;
+    highPerforming: number;
+    needsOptimization: number;
+    newContent: number;
+  }> {
+    // Get content metrics stats
+    const contentQuery = `
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN seo_score >= 80 THEN 1 END) as high_performing,
+        COUNT(CASE WHEN seo_score BETWEEN 50 AND 79 THEN 1 END) as needs_optimization,
+        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '7 days' THEN 1 END) as new_content
+      FROM seo_content_metrics 
+      WHERE project_id = $1
+    `;
+
+    // Fallback to crawled_pages if seo_content_metrics is empty
+    const crawledQuery = `
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN status_code = 200 AND title IS NOT NULL AND meta_description IS NOT NULL THEN 1 END) as high_performing,
+        COUNT(CASE WHEN status_code = 200 AND (title IS NULL OR meta_description IS NULL OR jsonb_array_length(COALESCE(h1_tags, '[]'::jsonb)) = 0) THEN 1 END) as needs_optimization,
+        COUNT(CASE WHEN crawled_at >= NOW() - INTERVAL '7 days' THEN 1 END) as new_content
+      FROM crawled_pages 
+      WHERE project_id = $1
+    `;
+
+    try {
+      const contentResult = await this.pool.query(contentQuery, [projectId]);
+      const contentRow = contentResult.rows[0];
+      
+      if (parseInt(contentRow.total) > 0) {
+        return {
+          totalPages: parseInt(contentRow.total) || 0,
+          highPerforming: parseInt(contentRow.high_performing) || 0,
+          needsOptimization: parseInt(contentRow.needs_optimization) || 0,
+          newContent: parseInt(contentRow.new_content) || 0,
+        };
+      }
+
+      // Fallback to crawled_pages
+      const crawledResult = await this.pool.query(crawledQuery, [projectId]);
+      const crawledRow = crawledResult.rows[0];
+      return {
+        totalPages: parseInt(crawledRow.total) || 0,
+        highPerforming: parseInt(crawledRow.high_performing) || 0,
+        needsOptimization: parseInt(crawledRow.needs_optimization) || 0,
+        newContent: parseInt(crawledRow.new_content) || 0,
+      };
+    } catch (error) {
+      this.logger.error('Failed to get content stats', { error, projectId });
+      return { totalPages: 0, highPerforming: 0, needsOptimization: 0, newContent: 0 };
+    }
+  }
+
+  /**
+   * Get crawl statistics
+   */
+  async getCrawlStats(projectId: string): Promise<{
+    totalPages: number;
+    healthyPages: number;
+    errorPages: number;
+  }> {
+    const query = `
+      SELECT 
+        COUNT(*) as total_pages,
+        COUNT(CASE WHEN status_code >= 200 AND status_code < 400 THEN 1 END) as healthy_pages,
+        COUNT(CASE WHEN status_code >= 400 THEN 1 END) as error_pages
+      FROM crawled_pages 
+      WHERE project_id = $1
+    `;
+
+    try {
+      const result = await this.pool.query(query, [projectId]);
+      const row = result.rows[0];
+      return {
+        totalPages: parseInt(row.total_pages) || 0,
+        healthyPages: parseInt(row.healthy_pages) || 0,
+        errorPages: parseInt(row.error_pages) || 0,
+      };
+    } catch (error) {
+      this.logger.error('Failed to get crawl stats', { error, projectId });
+      return { totalPages: 0, healthyPages: 0, errorPages: 0 };
+    }
   }
 
   // ===========================================================================

@@ -1,0 +1,26 @@
+{
+  "name": "@seotool/gsc-worker",
+  "version": "1.0.0",
+  "description": "Google Search Console data sync worker",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "sync": "ts-node src/index.ts --sync",
+    "sync:project": "ts-node src/index.ts --project"
+  },
+  "dependencies": {
+    "googleapis": "^126.0.1",
+    "pg": "^8.11.3",
+    "dotenv": "^16.3.1",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/pg": "^8.10.9",
+    "@types/uuid": "^9.0.7",
+    "typescript": "^5.3.2",
+    "ts-node": "^10.9.2"
+  }
+}

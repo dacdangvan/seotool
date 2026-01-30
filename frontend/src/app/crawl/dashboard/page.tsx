@@ -11,13 +11,15 @@ import { Sidebar } from '@/components/Sidebar';
 import { RoleGuard } from '@/components/RoleGuard';
 import { CrawlDashboard } from '@/components/crawl';
 import { UserRole } from '@/types/auth';
+import { useProject } from '@/context/ProjectContext';
 
 export default function CrawlDashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { currentProject } = useProject();
   
-  // Get project ID from URL or use default
-  const projectId = searchParams.get('projectId') || 'default-project';
+  // Get project ID from context, URL param, or fallback to real project UUID
+  const projectId = currentProject?.id || searchParams.get('projectId') || 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
 
   // Handle navigation to pages view
   const handleNavigateToPages = (filter?: string) => {

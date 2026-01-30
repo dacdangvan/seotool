@@ -19,7 +19,8 @@
  * - All content follows the brief strictly
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { cn, formatNumber, formatCompact } from '@/lib/utils';
 import type { SearchIntent } from '@/types/keyword.types';
 import { SEARCH_INTENT_CONFIG, OPPORTUNITY_CONFIG } from '@/types/keyword.types';
@@ -32,6 +33,7 @@ import {
   type BriefGenerationInput,
   type GeneratedContent,
 } from '@/components/content';
+import { saveGeneratedContent } from '@/services/content.service';
 import {
   Sparkles,
   Target,
@@ -119,12 +121,166 @@ const MOCK_BRAND_PROFILE: BriefGenerationInput['brandProfile'] = {
 type Step = 'select' | 'brief' | 'approve' | 'generate';
 
 export default function AIContentGenerationPage() {
+  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState<Step>('select');
   const [selectedKeyword, setSelectedKeyword] = useState<BriefGenerationInput['keyword'] | null>(null);
   const [contentBrief, setContentBrief] = useState<FullContentBrief | null>(null);
   const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [intentFilter, setIntentFilter] = useState<SearchIntent | 'all'>('all');
+  const [urlBriefSuggestion, setUrlBriefSuggestion] = useState<{
+    suggestedTitle: string;
+    suggestedMetaDescription: string;
+    suggestedH1: string;
+    suggestedOutline: string[];
+    targetWordCount: number;
+    relatedKeywordsToInclude: string[];
+  } | null>(null);
+
+  // Read URL params and auto-populate keyword from URL
+  useEffect(() => {
+    const keywordParam = searchParams.get('keyword');
+    const briefParam = searchParams.get('brief');
+    const relatedKeywordsParam = searchParams.get('relatedKeywords');
+
+    if (keywordParam) {
+      // Parse brief suggestion if available
+      let briefSuggestion = null;
+      if (briefParam) {
+        try {
+          briefSuggestion = JSON.parse(briefParam);
+          setUrlBriefSuggestion(briefSuggestion);
+        } catch (e) {
+          console.error('Failed to parse brief param:', e);
+        }
+      }
+
+      // Parse related keywords
+      let relatedKeywords: string[] = [];
+      if (relatedKeywordsParam) {
+        try {
+          relatedKeywords = JSON.parse(relatedKeywordsParam);
+        } catch (e) {
+          console.error('Failed to parse related keywords:', e);
+        }
+      }
+
+      // Create keyword object from URL params
+      const keywordFromUrl: BriefGenerationInput['keyword'] = {
+        primary: keywordParam,
+        secondary: briefSuggestion?.relatedKeywordsToInclude || relatedKeywords || [],
+        searchVolume: 0, // Will be fetched from API if needed
+        difficulty: 50,
+        intent: 'informational' as const,
+        opportunity: 'medium' as const,
+        clusterId: `cluster_${keywordParam.replace(/\s+/g, '_')}`,
+        clusterName: keywordParam,
+      };
+
+      // Auto-select keyword
+      setSelectedKeyword(keywordFromUrl);
+      
+      // If we have brief suggestion from URL, auto-create brief and go directly to approve step
+      if (briefSuggestion) {
+        const targetWordCount = briefSuggestion.targetWordCount || 2000;
+        const outlineItems = briefSuggestion.suggestedOutline || [];
+        
+        const autoBrief: FullContentBrief = {
+          brief_id: `brief_${Date.now()}`,
+          project_id: 'project_demo_001',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          generated_by: 'ai',
+          status: 'draft',
+          
+          overview: {
+            objective: `Tạo nội dung toàn diện về "${keywordParam}" để ranking trên Google`,
+            target_audience: 'Khách hàng tiềm năng quan tâm đến sản phẩm/dịch vụ ngân hàng',
+            content_type: 'guide',
+            content_mode: 'create',
+          },
+          
+          seo_targeting: {
+            primary_keyword: keywordParam,
+            secondary_keywords: briefSuggestion.relatedKeywordsToInclude || relatedKeywords || [],
+            related_entities: [],
+            search_intent: 'informational',
+            search_volume: 0,
+            keyword_difficulty: 50,
+            opportunity_score: 'medium',
+            target_url: null,
+            suggested_slug: keywordParam.toLowerCase().replace(/\s+/g, '-'),
+          },
+          
+          competitive_context: {
+            existing_internal_pages: [],
+            cannibalization_risk: 'LOW',
+            differentiation_angle: `Góc nhìn chuyên gia VIB về ${keywordParam}`,
+          },
+          
+          recommended_structure: {
+            suggested_h1: briefSuggestion.suggestedH1 || `${keywordParam} - Hướng dẫn chi tiết`,
+            outline: outlineItems.map((heading: string, idx: number) => ({
+              level: 2 as const,
+              text: heading,
+              keywords: [],
+              wordCount: Math.floor(targetWordCount / Math.max(outlineItems.length, 1)),
+            })),
+            mandatory_sections: ['Giới thiệu', 'Kết luận'],
+            optional_sections: ['FAQ', 'Tài liệu tham khảo'],
+            faq_suggestions: [],
+          },
+          
+          internal_linking: {
+            required_links: [],
+            anchor_text_guidance: `Sử dụng anchor text chứa từ khóa "${keywordParam}"`,
+            links_to_avoid: [],
+          },
+          
+          content_requirements: {
+            word_count_range: { min: targetWordCount - 500, max: targetWordCount + 500 },
+            reading_level: 'intermediate',
+            tone: 'neutral_expert',
+            formality: 'semi-formal',
+            cta_style: 'soft',
+          },
+          
+          seo_constraints: {
+            meta_title_guidance: briefSuggestion.suggestedTitle || `${keywordParam} | VIB`,
+            meta_description_guidance: briefSuggestion.suggestedMetaDescription || `Tìm hiểu về ${keywordParam}. Thông tin chi tiết và hướng dẫn từ VIB.`,
+            structured_data_requirements: ['Article', 'BreadcrumbList'],
+            seo_ready_signals: ['H1 chứa từ khóa chính', 'Meta title tối ưu', 'Internal links'],
+          },
+          
+          risks: {
+            brand_risk: 'LOW',
+            compliance_risk: 'LOW',
+            technical_risk: 'LOW',
+            cannibalization_risk: 'LOW',
+            warnings: [],
+          },
+          
+          success_metrics: {
+            primary_kpi: 'Organic traffic tăng 20%',
+            secondary_kpis: ['Top 10 ranking cho từ khóa chính', 'CTR > 3%'],
+            expected_time_to_impact: '3-6 tháng',
+          },
+          
+          ai_reasoning: {
+            explanation: `Brief được tạo tự động từ phân tích SEO cho từ khóa "${keywordParam}"`,
+            confidence_score: 0.85,
+            data_sources_used: ['GSC Data', 'Crawl Data', 'CWV Analysis'],
+          },
+        };
+        
+        setContentBrief(autoBrief);
+        setCurrentStep('approve');
+      } else {
+        // No brief suggestion, go to brief generation step
+        setCurrentStep('brief');
+      }
+    }
+  }, [searchParams]);
 
   // Filter keywords
   const filteredKeywords = useMemo(() => {
@@ -161,6 +317,48 @@ export default function AIContentGenerationPage() {
 
   const handleContentGenerated = (content: GeneratedContent) => {
     setGeneratedContent(content);
+    
+    // Auto-save generated content to localStorage
+    if (contentBrief && selectedKeyword) {
+      try {
+        // Extract title from content (first H1 or use brief title)
+        const titleMatch = content.content.match(/^#\s+(.+)$/m);
+        const title = titleMatch ? titleMatch[1] : contentBrief.recommended_structure.suggested_h1;
+        
+        // Create slug from primary keyword
+        const slug = selectedKeyword.primary
+          .toLowerCase()
+          .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, 'a')
+          .replace(/[èéẹẻẽêềếệểễ]/g, 'e')
+          .replace(/[ìíịỉĩ]/g, 'i')
+          .replace(/[òóọỏõôồốộổỗơờớợởỡ]/g, 'o')
+          .replace(/[ùúụủũưừứựửữ]/g, 'u')
+          .replace(/[ỳýỵỷỹ]/g, 'y')
+          .replace(/đ/g, 'd')
+          .replace(/[^a-z0-9\s-]/g, '')
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .trim();
+        
+        saveGeneratedContent({
+          projectId: 'project-1', // Default project
+          title,
+          slug: slug || `content-${Date.now()}`,
+          content: content.content,
+          primaryKeyword: selectedKeyword.primary,
+          secondaryKeywords: selectedKeyword.secondary,
+          metaTitle: contentBrief.seo_constraints.meta_title_guidance,
+          metaDescription: contentBrief.seo_constraints.meta_description_guidance,
+          briefId: contentBrief.brief_id,
+          createdBy: 'ai-content-writer',
+          status: 'draft',
+        });
+        
+        console.log('✅ Content saved successfully');
+      } catch (error) {
+        console.error('Failed to save content:', error);
+      }
+    }
   };
 
   const handleBack = () => {

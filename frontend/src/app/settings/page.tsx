@@ -3,13 +3,17 @@
 /**
  * Settings Page
  * 
- * v0.7 - Admin-only settings management
+ * v0.8 - Admin-only settings management with GA4 Integration
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RoleGuard } from '@/components/RoleGuard';
 import { Sidebar } from '@/components/Sidebar';
 import { UserRole } from '@/types/auth';
+import { GA4Settings } from '@/components/settings/GA4Settings';
+import { GSCSettings } from '@/components/settings/GSCSettings';
+import { AISettings } from '@/components/settings/AISettings';
+import { useProject } from '@/context/ProjectContext';
 import {
   Settings as SettingsIcon,
   Bell,
@@ -19,6 +23,7 @@ import {
   Mail,
   Save,
   Check,
+  Bot,
 } from 'lucide-react';
 
 interface SettingSection {
@@ -27,18 +32,47 @@ interface SettingSection {
   icon: React.ElementType;
 }
 
+interface Project {
+  id: string;
+  name: string;
+  domain: string;
+}
+
 const SECTIONS: SettingSection[] = [
   { id: 'general', label: 'General', icon: SettingsIcon },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'integrations', label: 'Integrations', icon: Globe },
+  { id: 'ai', label: 'AI Settings', icon: Bot },
   { id: 'security', label: 'Security', icon: Lock },
   { id: 'data', label: 'Data & Privacy', icon: Database },
 ];
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 function SettingsContent() {
-  const [activeSection, setActiveSection] = useState('general');
+  const [activeSection, setActiveSection] = useState('integrations'); // Default to integrations
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const { currentProject } = useProject();
+  
+  // Fallback: Load project directly if context doesn't have it
+  const [fallbackProject, setFallbackProject] = useState<Project | null>(null);
+  
+  useEffect(() => {
+    if (!currentProject && !fallbackProject) {
+      // Load projects directly from API
+      fetch(`${API_BASE}/projects`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data.projects.length > 0) {
+            setFallbackProject(data.data.projects[0]);
+          }
+        })
+        .catch(err => console.error('Failed to load projects:', err));
+    }
+  }, [currentProject, fallbackProject]);
+  
+  const activeProject = currentProject || fallbackProject;
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -154,31 +188,74 @@ function SettingsContent() {
               {activeSection === 'integrations' && (
                 <div className="space-y-6">
                   <h2 className="text-lg font-semibold text-gray-900">Integrations</h2>
+                  <p className="text-gray-500 text-sm">
+                    Kết nối các công cụ bên ngoài để lấy dữ liệu thực cho project: <strong>{activeProject?.name || 'Chưa chọn project'}</strong>
+                  </p>
                   
-                  <div className="grid gap-4">
+                  {activeProject ? (
+                    <>
+                      {/* GA4 Integration */}
+                      <GA4Settings 
+                        projectId={activeProject.id} 
+                        projectName={activeProject.name} 
+                      />
+                      
+                      {/* GSC Integration */}
+                      <GSCSettings 
+                        projectId={activeProject.id} 
+                        projectName={activeProject.name} 
+                      />
+                    </>
+                  ) : (
+                    <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-amber-700">Vui lòng chọn một project để cấu hình integrations</p>
+                    </div>
+                  )}
+
+                  {/* Other Integrations - Placeholder */}
+                  <div className="grid gap-4 mt-6">
+                    <h3 className="text-md font-medium text-gray-700">Các kết nối khác</h3>
                     {[
-                      { name: 'Google Analytics', connected: true },
-                      { name: 'Google Search Console', connected: true },
-                      { name: 'Ahrefs', connected: false },
-                      { name: 'SEMrush', connected: false },
+                      { name: 'Ahrefs', connected: false, description: 'Backlinks analysis' },
+                      { name: 'SEMrush', connected: false, description: 'Keyword research' },
                     ].map(integration => (
                       <div key={integration.name} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                         <div className="flex items-center gap-3">
                           <Globe className="w-8 h-8 text-gray-400" />
-                          <span className="font-medium text-gray-900">{integration.name}</span>
+                          <div>
+                            <span className="font-medium text-gray-900">{integration.name}</span>
+                            <p className="text-xs text-gray-500">{integration.description}</p>
+                          </div>
                         </div>
                         <button
-                          className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                            integration.connected
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
+                          className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-400 cursor-not-allowed"
+                          disabled
                         >
-                          {integration.connected ? 'Connected' : 'Connect'}
+                          Coming Soon
                         </button>
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {activeSection === 'ai' && (
+                <div className="space-y-6">
+                  <h2 className="text-lg font-semibold text-gray-900">AI Content Generation Settings</h2>
+                  <p className="text-gray-500 text-sm">
+                    Cấu hình AI provider để tạo nội dung tự động cho project: <strong>{activeProject?.name || 'Chưa chọn project'}</strong>
+                  </p>
+                  
+                  {activeProject ? (
+                    <AISettings 
+                      projectId={activeProject.id} 
+                      projectName={activeProject.name} 
+                    />
+                  ) : (
+                    <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-amber-700">Vui lòng chọn một project để cấu hình AI Settings</p>
+                    </div>
+                  )}
                 </div>
               )}
 

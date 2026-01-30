@@ -13,6 +13,7 @@ import {
   PostgresSeoGoalRepository,
   PostgresSeoPlanRepository,
   PostgresSeoTaskRepository,
+  PostgresKeywordRankingsRepository,
 } from './infrastructure/repositories/index';
 
 // Services
@@ -30,10 +31,17 @@ import {
   PlansController,
   HealthController,
   ProjectsController,
+  AuthController,
+  DashboardController,
 } from './interfaces/http/controllers/index';
 
 // Crawler (new auto-crawl system)
 import { CrawlController } from './crawler/crawl_controller';
+import { KeywordController } from './interfaces/http/controllers/KeywordController';
+
+// Jobs
+import { JobScheduler, createJobScheduler } from './jobs';
+import { JobsController } from './interfaces/http/controllers/JobsController';
 
 import { Logger } from './shared/Logger';
 
@@ -45,6 +53,7 @@ export interface Container {
   goalRepository: PostgresSeoGoalRepository;
   planRepository: PostgresSeoPlanRepository;
   taskRepository: PostgresSeoTaskRepository;
+  keywordRepository: PostgresKeywordRankingsRepository;
   
   // Services
   taskPlanner: TaskPlannerService;
@@ -53,12 +62,19 @@ export interface Container {
   goalService: SeoGoalService;
   planService: SeoPlanService;
   
+  // Jobs
+  jobScheduler: JobScheduler;
+  
   // Controllers
   goalsController: GoalsController;
   plansController: PlansController;
   healthController: HealthController;
   projectsController: ProjectsController;
   crawlerController: CrawlController;
+  keywordController: KeywordController;
+  authController: AuthController;
+  dashboardController: DashboardController;
+  jobsController: JobsController;
 }
 
 /**
@@ -75,6 +91,7 @@ export function createContainer(): Container {
   const goalRepository = new PostgresSeoGoalRepository(pool);
   const planRepository = new PostgresSeoPlanRepository(pool);
   const taskRepository = new PostgresSeoTaskRepository(pool);
+  const keywordRepository = new PostgresKeywordRankingsRepository(pool);
 
   // Services
   const agentDispatcher = new AgentDispatcher();
@@ -89,23 +106,54 @@ export function createContainer(): Container {
   const healthController = new HealthController(agentDispatcher);
   const projectsController = new ProjectsController(pool);
   const crawlerController = new CrawlController(pool);
+  const authController = new AuthController(pool);
+  const dashboardController = new DashboardController(pool);
+  const keywordController = new KeywordController(keywordRepository);
+
+  // Jobs
+  const jobScheduler = createJobScheduler(pool, {
+    recommendationGenerator: {
+      enabled: process.env.ENABLE_SCHEDULED_JOBS !== 'false',
+      schedule: process.env.RECOMMENDATION_JOB_SCHEDULE || '0 6 * * *', // 6:00 AM daily
+      config: {
+        maxRecommendationsPerProject: 20,
+        cleanupOldDays: 30,
+      },
+    },
+  });
+  const jobsController = new JobsController(jobScheduler);
 
   logger.info('Dependency container initialized');
 
   return {
+    // Infrastructure
     pool,
+
+    // Repositories
     goalRepository,
     planRepository,
     taskRepository,
+    keywordRepository,
+
+    // Services
     taskPlanner,
     agentDispatcher,
     statusTracker,
     goalService,
     planService,
+
+    // Jobs
+    jobScheduler,
+
+    // Controllers
     goalsController,
     plansController,
     healthController,
     projectsController,
     crawlerController,
+    authController,
+    dashboardController,
+    keywordController,
+    jobsController,
   };
 }

@@ -56,6 +56,14 @@ export { SitemapParser, SitemapUrl, SitemapParseResult } from './sitemap_parser'
 export { UrlFrontier, FrontierUrl, FrontierStats, UrlSource } from './url_frontier';
 export { CrawlConfig as FullCrawlConfig, DEFAULT_CRAWL_CONFIG as FULL_CRAWL_DEFAULT_CONFIG, CRAWL_PRESETS, getCrawlConfig } from './crawl_config';
 
+// Crawl Content Integration - Section 17 (Normalize & Save to DB)
+export {
+  CrawlContentIntegration,
+  createCrawlContentIntegration,
+  CrawlAndSaveOptions,
+  CrawlAndSaveResult,
+} from './crawl_content_integration';
+
 // Core Web Vitals (CWV) Module - Lab data collection
 export {
   CWVStatus,

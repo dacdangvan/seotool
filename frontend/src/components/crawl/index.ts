@@ -24,3 +24,6 @@ export {
   CrawlCoverageBar,
   Pagination,
 } from './UrlInventoryTable';
+
+// Add URLs Modal
+export { AddUrlsModal } from './AddUrlsModal';

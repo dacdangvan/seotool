@@ -94,3 +94,21 @@ export type {
   BriefValidationResult,
   GeneratedContent,
 } from './AIContentWriter';
+
+// QA Result Panel – Per Section 16
+export {
+  QAResultPanel,
+  QAStatusBadge,
+  ExportGateIndicator,
+} from './QAResultPanel';
+
+// CMS Export Dialog – Per Section 15
+export {
+  CMSExportDialog,
+} from './CMSExportDialog';
+
+// Content Brief Card (New) – Per Section 13
+export {
+  ContentBriefCard as NewContentBriefCard,
+  ContentBriefMini,
+} from './ContentBriefCard';

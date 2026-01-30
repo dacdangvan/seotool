@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import type { CopilotMessage, CopilotSuggestion } from '@/types/dashboard';
 import { sendCopilotMessage } from '@/lib/api';
-import { mockCopilotSuggestions } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 
 interface ManagerCopilotProps {
@@ -230,7 +229,7 @@ export function ManagerCopilot({ className }: ManagerCopilotProps) {
         <div className="p-4">
           <p className="text-sm text-gray-500 mb-3">Try asking:</p>
           <div className="flex flex-wrap gap-2">
-            {mockCopilotSuggestions.map((suggestion, i) => (
+            {[].map((suggestion: CopilotSuggestion, i: number) => (
               <button
                 key={i}
                 onClick={() => handleSuggestionClick(suggestion)}
