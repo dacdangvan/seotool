@@ -546,17 +546,30 @@ export class CrawlController {
       const latestJob = jobResult.rows[0];
       
       // Get average load time from CWV results (using LCP as load time indicator)
+      // Filter out invalid values (99999999 is used as placeholder for failed measurements)
+      // Valid LCP should be < 60000ms (60 seconds) - anything above is likely invalid
       const cwvQuery = `
         SELECT 
-          ROUND(AVG(lcp_value)) as avg_lcp,
-          ROUND(AVG(fcp_value)) as avg_fcp,
-          ROUND(AVG(ttfb_value)) as avg_ttfb
+          ROUND(AVG(CASE WHEN lcp_value > 0 AND lcp_value < 60000 THEN lcp_value ELSE NULL END)) as avg_lcp,
+          ROUND(AVG(CASE WHEN fcp_value > 0 AND fcp_value < 60000 THEN fcp_value ELSE NULL END)) as avg_fcp,
+          ROUND(AVG(CASE WHEN ttfb_value > 0 AND ttfb_value < 30000 THEN ttfb_value ELSE NULL END)) as avg_ttfb
         FROM cwv_results
         WHERE project_id = $1
       `;
       const cwvResult = await this.pool.query(cwvQuery, [projectId]);
       const cwvStats = cwvResult.rows[0];
-      const avgLoadTime = parseInt(cwvStats?.avg_lcp) || 0;
+      
+      // Fallback to response_time from crawled_pages if no valid CWV data
+      let avgLoadTime = parseInt(cwvStats?.avg_lcp) || 0;
+      if (avgLoadTime === 0) {
+        const responseTimeQuery = `
+          SELECT ROUND(AVG(response_time)) as avg_response_time
+          FROM crawled_pages
+          WHERE project_id = $1 AND response_time > 0
+        `;
+        const rtResult = await this.pool.query(responseTimeQuery, [projectId]);
+        avgLoadTime = parseInt(rtResult.rows[0]?.avg_response_time) || 0;
+      }
       
       // Get project name
       const projectQuery = `SELECT name FROM projects WHERE id = $1`;
