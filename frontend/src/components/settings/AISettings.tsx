@@ -26,6 +26,12 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 interface AIConfig {
   ai_provider: string;
+  // Ollama
+  ollama_api_url?: string;
+  ollama_model?: string;
+  ollama_enabled?: boolean;
+  ollama_configured?: boolean;
+  // Other providers
   moltbot_api_url: string;
   moltbot_model: string;
   anthropic_model: string;
@@ -95,8 +101,9 @@ const AI_PROVIDERS = [
   {
     id: 'gemini',
     name: 'Gemini (Google)',
-    description: 'Nhanh, chi phí thấp',
+    description: 'Nhanh, nhiều model miễn phí',
     icon: '💎',
+    free: true,
   },
   {
     id: 'template',
@@ -131,12 +138,20 @@ export function AISettings({ projectId, projectName }: AISettingsProps) {
     openai_api_key: '',
     openai_model: 'gpt-4o-mini',
     gemini_api_key: '',
-    gemini_model: 'gemini-1.5-flash',
+    gemini_model: 'gemini-2.0-flash',
     custom_api_key: '',
     custom_api_url: '',
     custom_api_model: '',
     max_tokens: 4000,
     temperature: 0.7,
+    // Image Generation
+    image_provider: 'huggingface',
+    huggingface_api_key: '',
+    huggingface_model: 'stabilityai/stable-diffusion-xl-base-1.0',
+    stability_api_key: '',
+    grok_api_key: '',
+    // CrUX API
+    crux_api_key: '',
   });
 
   // Show/hide API keys
@@ -146,6 +161,10 @@ export function AISettings({ projectId, projectName }: AISettingsProps) {
     openai: false,
     gemini: false,
     custom: false,
+    huggingface: false,
+    stability: false,
+    grok: false,
+    crux: false,
   });
 
   useEffect(() => {
@@ -163,6 +182,9 @@ export function AISettings({ projectId, projectName }: AISettingsProps) {
         setFormData(prev => ({
           ...prev,
           ai_provider: data.data.ai_provider || 'auto',
+          ollama_api_url: data.data.ollama_api_url || prev.ollama_api_url,
+          ollama_model: data.data.ollama_model || prev.ollama_model,
+          ollama_enabled: data.data.ollama_enabled !== false,
           moltbot_api_url: data.data.moltbot_api_url || prev.moltbot_api_url,
           moltbot_model: data.data.moltbot_model || prev.moltbot_model,
           anthropic_model: data.data.anthropic_model || prev.anthropic_model,
@@ -172,6 +194,9 @@ export function AISettings({ projectId, projectName }: AISettingsProps) {
           custom_api_model: data.data.custom_api_model || '',
           max_tokens: data.data.max_tokens || 4000,
           temperature: parseFloat(data.data.temperature) || 0.7,
+          // Image Generation
+          image_provider: data.data.image_provider || 'huggingface',
+          huggingface_model: data.data.huggingface_model || prev.huggingface_model,
         }));
       }
     } catch (err) {
@@ -190,6 +215,11 @@ export function AISettings({ projectId, projectName }: AISettingsProps) {
       // Only send fields that have values
       const payload: Record<string, any> = {
         ai_provider: formData.ai_provider,
+        // Ollama settings
+        ollama_api_url: formData.ollama_api_url,
+        ollama_model: formData.ollama_model,
+        ollama_enabled: formData.ollama_enabled,
+        // Other providers
         moltbot_api_url: formData.moltbot_api_url,
         moltbot_model: formData.moltbot_model,
         anthropic_model: formData.anthropic_model,
@@ -197,6 +227,9 @@ export function AISettings({ projectId, projectName }: AISettingsProps) {
         gemini_model: formData.gemini_model,
         max_tokens: formData.max_tokens,
         temperature: formData.temperature,
+        // Image Generation
+        image_provider: formData.image_provider,
+        huggingface_model: formData.huggingface_model,
       };
 
       // Only include API keys if they're set (not empty)
@@ -207,6 +240,12 @@ export function AISettings({ projectId, projectName }: AISettingsProps) {
       if (formData.custom_api_key) payload.custom_api_key = formData.custom_api_key;
       if (formData.custom_api_url) payload.custom_api_url = formData.custom_api_url;
       if (formData.custom_api_model) payload.custom_api_model = formData.custom_api_model;
+      // Image API keys
+      if (formData.huggingface_api_key) payload.huggingface_api_key = formData.huggingface_api_key;
+      if (formData.stability_api_key) payload.stability_api_key = formData.stability_api_key;
+      if (formData.grok_api_key) payload.grok_api_key = formData.grok_api_key;
+      // CrUX API key
+      if (formData.crux_api_key) payload.crux_api_key = formData.crux_api_key;
 
       const response = await fetch(`${API_BASE}/projects/${projectId}/ai/config`, {
         method: 'PUT',
@@ -226,11 +265,19 @@ export function AISettings({ projectId, projectName }: AISettingsProps) {
           openai_api_key: '',
           gemini_api_key: '',
           custom_api_key: '',
+          huggingface_api_key: '',
+          stability_api_key: '',
+          grok_api_key: '',
+          crux_api_key: '',
         }));
         // Reload config to get updated masked keys
         await loadConfig();
       } else {
-        setError(data.error || 'Failed to save configuration');
+        // Handle error - could be string or object {code, message}
+        const errorMsg = typeof data.error === 'object' && data.error?.message 
+          ? data.error.message 
+          : (typeof data.error === 'string' ? data.error : 'Failed to save configuration');
+        setError(errorMsg);
       }
     } catch (err) {
       setError('Failed to save AI configuration');
@@ -690,12 +737,25 @@ export function AISettings({ projectId, projectName }: AISettingsProps) {
                   onChange={e => setFormData(prev => ({ ...prev, gemini_model: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 >
-                  <option value="gemini-1.5-flash">gemini-1.5-flash (Fast)</option>
-                  <option value="gemini-1.5-pro">gemini-1.5-pro (Best)</option>
-                  <option value="gemini-pro">gemini-pro (Standard)</option>
+                  <optgroup label="🆓 Free Models (Recommended)">
+                    <option value="gemini-2.5-flash-preview-05-20">gemini-2.5-flash-preview (Latest, FREE)</option>
+                    <option value="gemini-2.0-flash">gemini-2.0-flash (Stable, FREE)</option>
+                    <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite (Fastest, FREE)</option>
+                    <option value="gemini-1.5-flash">gemini-1.5-flash (Legacy, FREE)</option>
+                  </optgroup>
+                  <optgroup label="💎 Pro Models (Paid)">
+                    <option value="gemini-2.5-pro-preview-05-06">gemini-2.5-pro-preview (Best Quality)</option>
+                    <option value="gemini-1.5-pro">gemini-1.5-pro (Standard)</option>
+                  </optgroup>
                 </select>
               </div>
             </div>
+            <p className="text-xs text-green-600 bg-green-50 p-2 rounded mt-2">
+              💡 <strong>Free Tier:</strong> gemini-2.0-flash hỗ trợ 15 RPM, 1M tokens/phút, 1500 requests/ngày miễn phí. 
+              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="underline ml-1">
+                Lấy API Key miễn phí tại đây →
+              </a>
+            </p>
           </div>
         </div>
 
@@ -732,6 +792,248 @@ export function AISettings({ projectId, projectName }: AISettingsProps) {
                 <span>Precise</span>
                 <span>Creative</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Image Generation Settings */}
+        <div className="p-4 bg-pink-50 rounded-lg border border-pink-200">
+          <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+            🖼️ Image Generation (AI Image)
+          </h4>
+          <p className="text-sm text-gray-600 mb-4">
+            Cấu hình API để tạo hình ảnh minh họa cho bài viết. <strong>Hugging Face & Gemini miễn phí!</strong>
+          </p>
+          
+          {/* Image Provider Selection */}
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-4">
+            {[
+              { id: 'huggingface', name: 'Hugging Face', emoji: '🤗', desc: 'Miễn phí' },
+              { id: 'openai', name: 'DALL-E 3', emoji: '🎨', desc: 'Trả phí' },
+              { id: 'gemini', name: 'Gemini', emoji: '💎', desc: 'Miễn phí' },
+              { id: 'grok', name: 'Grok', emoji: '🚀', desc: 'xAI' },
+              { id: 'stability', name: 'Stability', emoji: '🖌️', desc: 'Free tier' },
+            ].map(provider => (
+              <button
+                key={provider.id}
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, image_provider: provider.id }))}
+                className={`p-2 rounded-lg border-2 text-center transition-all ${
+                  formData.image_provider === provider.id
+                    ? 'border-pink-500 bg-pink-100'
+                    : 'border-gray-200 hover:border-pink-300'
+                }`}
+              >
+                <span className="text-lg">{provider.emoji}</span>
+                <p className="text-xs font-medium mt-1">{provider.name}</p>
+                <p className="text-[10px] text-gray-500">{provider.desc}</p>
+              </button>
+            ))}
+          </div>
+          
+          {/* Hugging Face Config */}
+          {formData.image_provider === 'huggingface' && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Hugging Face API Key <span className="text-pink-600">*</span>
+                  <a 
+                    href="https://huggingface.co/settings/tokens" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="ml-2 text-blue-600 hover:underline"
+                  >
+                    (Lấy key miễn phí)
+                  </a>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showKeys.huggingface ? 'text' : 'password'}
+                    value={formData.huggingface_api_key}
+                    onChange={e => setFormData(prev => ({ ...prev, huggingface_api_key: e.target.value }))}
+                    placeholder="hf_xxxxxxxxxxxxxxxx"
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKeys(prev => ({ ...prev, huggingface: !prev.huggingface }))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showKeys.huggingface ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Model</label>
+                <select
+                  value={formData.huggingface_model}
+                  onChange={e => setFormData(prev => ({ ...prev, huggingface_model: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="stabilityai/stable-diffusion-xl-base-1.0">Stable Diffusion XL (Recommended)</option>
+                  <option value="runwayml/stable-diffusion-v1-5">Stable Diffusion v1.5</option>
+                  <option value="CompVis/stable-diffusion-v1-4">Stable Diffusion v1.4</option>
+                  <option value="prompthero/openjourney">OpenJourney (Midjourney style)</option>
+                </select>
+              </div>
+            </div>
+          )}
+          
+          {/* Stability AI Config */}
+          {formData.image_provider === 'stability' && (
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">
+                Stability AI API Key
+                <a 
+                  href="https://platform.stability.ai/account/keys" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="ml-2 text-blue-600 hover:underline"
+                >
+                  (Lấy key)
+                </a>
+              </label>
+              <div className="relative">
+                <input
+                  type={showKeys.stability ? 'text' : 'password'}
+                  value={formData.stability_api_key}
+                  onChange={e => setFormData(prev => ({ ...prev, stability_api_key: e.target.value }))}
+                  placeholder="sk-xxxxxxxx"
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowKeys(prev => ({ ...prev, stability: !prev.stability }))}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showKeys.stability ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {/* OpenAI/DALL-E uses existing openai_api_key */}
+          {formData.image_provider === 'openai' && (
+            <div className="p-3 bg-white rounded border space-y-2">
+              <p className="text-sm text-gray-600">
+                💡 DALL-E 3 sử dụng cùng <strong>OpenAI API key</strong> đã cấu hình ở trên.
+              </p>
+              <p className="text-xs text-gray-500">
+                Model: dall-e-3 | Size: 1024x1024, 1792x1024, 1024x1792
+              </p>
+            </div>
+          )}
+          
+          {/* Gemini Imagen uses existing gemini_api_key */}
+          {formData.image_provider === 'gemini' && (
+            <div className="p-3 bg-white rounded border space-y-2">
+              <p className="text-sm text-gray-600">
+                💎 Gemini Imagen sử dụng cùng <strong>Gemini API key</strong> đã cấu hình ở trên.
+              </p>
+              <p className="text-xs text-gray-500">
+                Model: imagen-3.0-generate-001 | Miễn phí với quota hàng ngày
+              </p>
+              <a 
+                href="https://aistudio.google.com/app/apikey" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs text-blue-600 hover:underline"
+              >
+                → Lấy Gemini API key miễn phí
+              </a>
+            </div>
+          )}
+          
+          {/* Grok uses xAI API */}
+          {formData.image_provider === 'grok' && (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  xAI (Grok) API Key
+                  <a 
+                    href="https://console.x.ai/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="ml-2 text-blue-600 hover:underline"
+                  >
+                    (Lấy key)
+                  </a>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showKeys.grok ? 'text' : 'password'}
+                    value={formData.grok_api_key || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, grok_api_key: e.target.value }))}
+                    placeholder="xai-xxxxxxxx"
+                    className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKeys(prev => ({ ...prev, grok: !prev.grok }))}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showKeys.grok ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Grok sử dụng Aurora model để tạo ảnh chất lượng cao
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* CrUX API Settings */}
+        <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg space-y-4">
+          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+            📊 CrUX API (Chrome User Experience Report)
+          </h3>
+          <p className="text-sm text-gray-600">
+            Lấy dữ liệu Core Web Vitals thực tế từ người dùng Chrome. Đây là field data thực tế, không phải lab data từ Lighthouse.
+          </p>
+          
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">
+                CrUX API Key
+                <a 
+                  href="https://developers.google.com/web/tools/chrome-user-experience-report/api/guides/getting-started" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="ml-2 text-blue-600 hover:underline"
+                >
+                  (Hướng dẫn lấy key)
+                </a>
+              </label>
+              <div className="relative">
+                <input
+                  type={showKeys.crux ? 'text' : 'password'}
+                  value={formData.crux_api_key || ''}
+                  onChange={e => setFormData(prev => ({ ...prev, crux_api_key: e.target.value }))}
+                  placeholder="AIzaSy..."
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowKeys(prev => ({ ...prev, crux: !prev.crux }))}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showKeys.crux ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                CrUX API key là Google Cloud API key có enable PageSpeed Insights API hoặc CrUX API
+              </p>
+            </div>
+            
+            <div className="p-3 bg-white rounded border">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Cách lấy CrUX API Key:</h4>
+              <ol className="text-xs text-gray-600 space-y-1 list-decimal list-inside">
+                <li>Truy cập <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Google Cloud Console</a></li>
+                <li>Tạo hoặc chọn project</li>
+                <li>Enable "Chrome UX Report API" và "PageSpeed Insights API"</li>
+                <li>Tạo API Key và copy vào đây</li>
+              </ol>
             </div>
           </div>
         </div>

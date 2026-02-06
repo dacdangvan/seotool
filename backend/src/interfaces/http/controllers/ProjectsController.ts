@@ -91,6 +91,25 @@ export class ProjectsController {
     
     // Content Generation API
     app.post('/projects/:id/content/generate', this.generateContent.bind(this));
+    
+    // AI Image Generation
+    app.post('/projects/:id/images/generate', this.generateImage.bind(this));
+    app.post('/projects/:id/images/upload', this.uploadImage.bind(this));
+    app.get('/projects/:id/images', this.getGeneratedImages.bind(this));
+    app.delete('/projects/:id/images/:imageId', this.deleteGeneratedImage.bind(this));
+    
+    // Social Media Posts
+    app.post('/projects/:id/social/generate', this.generateSocialContent.bind(this));
+    app.get('/projects/:id/social/posts', this.getSocialPosts.bind(this));
+    app.post('/projects/:id/social/posts', this.createSocialPost.bind(this));
+    app.put('/projects/:id/social/posts/:postId', this.updateSocialPost.bind(this));
+    app.delete('/projects/:id/social/posts/:postId', this.deleteSocialPost.bind(this));
+    app.post('/projects/:id/social/posts/:postId/publish', this.publishSocialPost.bind(this));
+    
+    // Social Media Accounts
+    app.get('/projects/:id/social/accounts', this.getSocialAccounts.bind(this));
+    app.post('/projects/:id/social/accounts', this.connectSocialAccount.bind(this));
+    app.delete('/projects/:id/social/accounts/:accountId', this.disconnectSocialAccount.bind(this));
   }
 
   // ===========================================================================
@@ -804,8 +823,8 @@ export class ProjectsController {
       status: project.status,
       ownerId: project.ownerId,
       settings: project.settings,
-      createdAt: project.createdAt.toISOString(),
-      updatedAt: project.updatedAt.toISOString(),
+      createdAt: project.createdAt instanceof Date ? project.createdAt.toISOString() : project.createdAt,
+      updatedAt: project.updatedAt instanceof Date ? project.updatedAt.toISOString() : project.updatedAt,
     };
   }
 
@@ -2305,8 +2324,14 @@ export class ProjectsController {
           gemini_model,
           custom_api_url,
           custom_api_model,
+          ollama_api_url,
+          ollama_model,
+          ollama_enabled,
           max_tokens,
           temperature,
+          -- Image Generation settings
+          image_provider,
+          huggingface_model,
           -- Return masked API keys (only show last 4 chars)
           CASE WHEN moltbot_api_key IS NOT NULL AND moltbot_api_key != '' 
                THEN '****' || RIGHT(moltbot_api_key, 4) ELSE NULL END as moltbot_api_key_masked,
@@ -2318,12 +2343,22 @@ export class ProjectsController {
                THEN '****' || RIGHT(gemini_api_key, 4) ELSE NULL END as gemini_api_key_masked,
           CASE WHEN custom_api_key IS NOT NULL AND custom_api_key != '' 
                THEN '****' || RIGHT(custom_api_key, 4) ELSE NULL END as custom_api_key_masked,
+          CASE WHEN huggingface_api_key IS NOT NULL AND huggingface_api_key != '' 
+               THEN '****' || RIGHT(huggingface_api_key, 4) ELSE NULL END as huggingface_api_key_masked,
+          CASE WHEN stability_api_key IS NOT NULL AND stability_api_key != '' 
+               THEN '****' || RIGHT(stability_api_key, 4) ELSE NULL END as stability_api_key_masked,
+          CASE WHEN grok_api_key IS NOT NULL AND grok_api_key != '' 
+               THEN '****' || RIGHT(grok_api_key, 4) ELSE NULL END as grok_api_key_masked,
           -- Boolean flags for configured providers
           (moltbot_api_key IS NOT NULL AND moltbot_api_key != '') as moltbot_configured,
           (anthropic_api_key IS NOT NULL AND anthropic_api_key != '') as anthropic_configured,
           (openai_api_key IS NOT NULL AND openai_api_key != '') as openai_configured,
           (gemini_api_key IS NOT NULL AND gemini_api_key != '') as gemini_configured,
           (custom_api_key IS NOT NULL AND custom_api_key != '') as custom_configured,
+          COALESCE(ollama_enabled, true) as ollama_configured,
+          (huggingface_api_key IS NOT NULL AND huggingface_api_key != '') as huggingface_configured,
+          (stability_api_key IS NOT NULL AND stability_api_key != '') as stability_configured,
+          (grok_api_key IS NOT NULL AND grok_api_key != '') as grok_configured,
           updated_at
         FROM project_ai_configs
         WHERE project_id = $1`,
@@ -2340,14 +2375,24 @@ export class ProjectsController {
             moltbot_model: 'moltbot-pro',
             anthropic_model: 'claude-3-haiku-20240307',
             openai_model: 'gpt-4o-mini',
-            gemini_model: 'gemini-1.5-flash',
+            gemini_model: 'gemini-2.0-flash',
+            ollama_api_url: 'http://127.0.0.1:11434/v1/chat/completions',
+            ollama_model: 'llama3:8b',
+            ollama_enabled: true,
             max_tokens: 4000,
             temperature: 0.7,
+            // Image Generation defaults
+            image_provider: 'huggingface',
+            huggingface_model: 'stabilityai/stable-diffusion-xl-base-1.0',
             moltbot_configured: false,
             anthropic_configured: false,
             openai_configured: false,
             gemini_configured: false,
             custom_configured: false,
+            ollama_configured: true,
+            huggingface_configured: false,
+            stability_configured: false,
+            grok_configured: false,
           },
         });
       }
@@ -2370,6 +2415,11 @@ export class ProjectsController {
       Params: { id: string };
       Body: {
         ai_provider?: string;
+        // Ollama
+        ollama_api_url?: string;
+        ollama_model?: string;
+        ollama_enabled?: boolean;
+        // Other providers
         moltbot_api_key?: string;
         moltbot_api_url?: string;
         moltbot_model?: string;
@@ -2384,6 +2434,14 @@ export class ProjectsController {
         custom_api_model?: string;
         max_tokens?: number;
         temperature?: number;
+        // Image Generation
+        image_provider?: string;
+        huggingface_api_key?: string;
+        huggingface_model?: string;
+        stability_api_key?: string;
+        grok_api_key?: string;
+        // CrUX API
+        crux_api_key?: string;
       };
     }>,
     reply: FastifyReply
@@ -2400,6 +2458,11 @@ export class ProjectsController {
       // Only update fields that are provided
       const fieldMappings: { [key: string]: string } = {
         ai_provider: 'ai_provider',
+        // Ollama
+        ollama_api_url: 'ollama_api_url',
+        ollama_model: 'ollama_model',
+        ollama_enabled: 'ollama_enabled',
+        // Other providers
         moltbot_api_key: 'moltbot_api_key',
         moltbot_api_url: 'moltbot_api_url',
         moltbot_model: 'moltbot_model',
@@ -2414,6 +2477,14 @@ export class ProjectsController {
         custom_api_model: 'custom_api_model',
         max_tokens: 'max_tokens',
         temperature: 'temperature',
+        // Image Generation
+        image_provider: 'image_provider',
+        huggingface_api_key: 'huggingface_api_key',
+        huggingface_model: 'huggingface_model',
+        stability_api_key: 'stability_api_key',
+        grok_api_key: 'grok_api_key',
+        // CrUX API
+        crux_api_key: 'crux_api_key',
       };
 
       for (const [key, column] of Object.entries(fieldMappings)) {
@@ -2545,7 +2616,7 @@ export class ProjectsController {
             testResult = await this.testOpenAIAPI(apiKey, model || 'gpt-4o-mini');
             break;
           case 'gemini':
-            testResult = await this.testGeminiAPI(apiKey, model || 'gemini-1.5-flash');
+            testResult = await this.testGeminiAPI(apiKey, model || 'gemini-2.0-flash');
             break;
           default:
             return reply.status(400).send({
@@ -2829,6 +2900,7 @@ export class ProjectsController {
       const anthropicApiKey = aiConfig.anthropic_api_key || process.env.ANTHROPIC_API_KEY;
       const openaiApiKey = aiConfig.openai_api_key || process.env.OPENAI_API_KEY;
       const geminiApiKey = aiConfig.gemini_api_key || process.env.GEMINI_API_KEY;
+      const geminiModel = aiConfig.gemini_model || process.env.GEMINI_MODEL || 'gemini-2.0-flash';
       
       // Ollama (local LLM - FREE, no API key needed)
       const ollamaEnabled = aiConfig.ollama_enabled !== false; // Default true
@@ -2897,6 +2969,7 @@ export class ProjectsController {
               if (!geminiApiKey) throw new Error('Gemini API key not configured');
               content = await this.generateContentWithGemini(
                 geminiApiKey,
+                geminiModel,
                 keyword,
                 brief,
                 crawledContext,
@@ -2948,6 +3021,7 @@ export class ProjectsController {
           } else if (geminiApiKey) {
             content = await this.generateContentWithGemini(
               geminiApiKey,
+              geminiModel,
               keyword,
               brief,
               crawledContext,
@@ -3226,35 +3300,47 @@ OUTPUT ONLY MARKDOWN CONTENT, NO EXPLANATIONS:`;
       ? `Bạn là chuyên gia SEO VIB. Viết nội dung bằng tiếng Việt dựa trên dữ liệu được cung cấp. Chỉ sử dụng thông tin thực tế từ dữ liệu, KHÔNG được bịa đặt.`
       : `You are VIB SEO expert. Write content based on provided data only. Do NOT fabricate information.`;
 
-    // Build compact user prompt
-    const outlineStr = brief.suggestedOutline.slice(0, 3).join(', ');
+    // Build compact user prompt - but keep full outline
+    const outlineStr = brief.suggestedOutline.map((item, i) => `${i + 1}. ${item}`).join('\n');
     const contextStr = limitedContext.map(c => 
-      `- ${c.title}: ${c.metaDescription || ''} ${c.contentSnippet.substring(0, 200)}`
+      `- ${c.title}: ${c.metaDescription || ''} ${c.contentSnippet.substring(0, 300)}`
     ).join('\n');
 
     const userPrompt = language === 'vi'
-      ? `Viết bài ${brief.targetWordCount || 300} từ về "${keyword}"
+      ? `Viết bài ${brief.targetWordCount || 1500} từ về "${keyword}"
 
 Tiêu đề: ${brief.suggestedH1}
-Outline: ${outlineStr}
+
+CẤU TRÚC BÀI VIẾT (PHẢI VIẾT ĐẦY ĐỦ TẤT CẢ CÁC MỤC):
+${outlineStr}
 
 Dữ liệu tham khảo:
 ${contextStr}
 
-${relatedKeywords.length > 0 ? `Từ khóa liên quan: ${relatedKeywords.slice(0, 3).join(', ')}` : ''}
+${relatedKeywords.length > 0 ? `Từ khóa liên quan: ${relatedKeywords.slice(0, 5).join(', ')}` : ''}
 
-Yêu cầu: Sử dụng format Markdown với heading ##. CHỈ viết dựa trên dữ liệu ở trên.`
-      : `Write ${brief.targetWordCount || 300} words about "${keyword}"
+Yêu cầu: 
+- Sử dụng format Markdown với # cho H1, ## cho H2
+- VIẾT ĐẦY ĐỦ TẤT CẢ ${brief.suggestedOutline.length} MỤC trong outline
+- Mỗi mục viết 100-200 từ
+- CHỈ viết dựa trên dữ liệu ở trên, không bịa đặt`
+      : `Write ${brief.targetWordCount || 1500} words about "${keyword}"
 
 Title: ${brief.suggestedH1}
-Outline: ${outlineStr}
+
+ARTICLE STRUCTURE (MUST WRITE ALL SECTIONS):
+${outlineStr}
 
 Reference data:
 ${contextStr}
 
-${relatedKeywords.length > 0 ? `Related keywords: ${relatedKeywords.slice(0, 3).join(', ')}` : ''}
+${relatedKeywords.length > 0 ? `Related keywords: ${relatedKeywords.slice(0, 5).join(', ')}` : ''}
 
-Format: Use Markdown with ## headings. ONLY use information from the data above.`;
+Requirements:
+- Use Markdown format with # for H1, ## for H2
+- WRITE ALL ${brief.suggestedOutline.length} SECTIONS in the outline
+- Each section should be 100-200 words
+- ONLY use information from the data above, do not fabricate`;
 
     const totalPromptLength = systemPrompt.length + userPrompt.length;
     console.log(`[Ollama] Compact prompt length: ${totalPromptLength}, Pages: ${limitedContext.length}`);
@@ -3280,7 +3366,7 @@ Format: Use Markdown with ## headings. ONLY use information from the data above.
           ],
           stream: false,
           options: {
-            num_predict: 1024, // Limit output tokens for faster response
+            num_predict: 4096, // Increase output tokens to allow full article generation
           }
         }),
         signal: controller.signal,
@@ -3428,6 +3514,7 @@ Format: Use Markdown with ## headings. ONLY use information from the data above.
    */
   private async generateContentWithGemini(
     apiKey: string,
+    model: string,
     keyword: string,
     brief: {
       suggestedTitle: string;
@@ -3451,8 +3538,9 @@ Format: Use Markdown with ## headings. ONLY use information from the data above.
       keyword, brief, crawledContext, relatedKeywords, language
     );
 
-    const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const geminiModel = model || 'gemini-2.0-flash';
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`;
+    console.log(`[GenerateContent] Using Gemini model: ${geminiModel}`);
 
     try {
       const response = await fetch(apiUrl, {
@@ -3662,5 +3750,1845 @@ Format: Use Markdown with ## headings. ONLY use information from the data above.
     }
 
     return content;
+  }
+
+  // ===========================================================================
+  // AI IMAGE GENERATION
+  // ===========================================================================
+
+  /**
+   * Generate AI image for content
+   */
+  async generateImage(
+    request: FastifyRequest<{
+      Params: { id: string };
+      Body: {
+        prompt: string;
+        style?: 'realistic' | 'cartoon' | 'artistic' | 'minimalist' | 'professional';
+        width?: number;
+        height?: number;
+        provider?: 'dall-e' | 'huggingface' | 'stability' | 'gemini' | 'auto';
+      };
+    }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const { id: projectId } = request.params;
+      const { prompt, style = 'professional', width = 1024, height = 1024 } = request.body;
+      let { provider = 'auto' } = request.body as { provider: 'dall-e' | 'huggingface' | 'stability' | 'gemini' | 'auto' };
+
+      if (!prompt) {
+        return reply.status(400).send({
+          success: false,
+          error: 'prompt is required',
+        });
+      }
+
+      // Get AI config for API keys (including image provider config)
+      const configResult = await this.pool.query(
+        `SELECT openai_api_key, image_provider, huggingface_api_key, huggingface_model, stability_api_key, gemini_api_key 
+         FROM project_ai_configs WHERE project_id = $1`,
+        [projectId]
+      );
+      const config = configResult.rows[0] || {};
+      
+      // Use configured image_provider if set, otherwise auto-detect
+      if (provider === 'auto' && config.image_provider) {
+        provider = config.image_provider;
+      }
+      
+      // Determine which provider to use
+      if (provider === 'auto') {
+        // Priority: Gemini (if key exists) > OpenAI > HuggingFace > Stability
+        if (config.gemini_api_key) {
+          provider = 'gemini';
+        } else if (config.openai_api_key) {
+          provider = 'dall-e';
+        } else if (config.huggingface_api_key) {
+          provider = 'huggingface';
+        } else if (config.stability_api_key) {
+          provider = 'stability';
+        } else {
+          return reply.status(400).send({
+            success: false,
+            error: 'Chưa cấu hình Image Generation API key. Vào Settings → AI Settings để thêm Gemini, Hugging Face hoặc OpenAI API key.',
+          });
+        }
+      }
+
+      // Validate API key for selected provider
+      const apiKeys: Record<string, string | undefined> = {
+        'dall-e': config.openai_api_key || process.env.OPENAI_API_KEY,
+        'huggingface': config.huggingface_api_key || process.env.HUGGINGFACE_API_KEY,
+        'stability': config.stability_api_key || process.env.STABILITY_API_KEY,
+        'gemini': config.gemini_api_key || process.env.GEMINI_API_KEY,
+      };
+
+      if (!apiKeys[provider]) {
+        return reply.status(400).send({
+          success: false,
+          error: `Chưa cấu hình API key cho ${provider}. Vào Settings → AI Settings để thêm.`,
+        });
+      }
+
+      // Create image record
+      const insertResult = await this.pool.query(
+        `INSERT INTO ai_generated_images (project_id, prompt, provider, width, height, style, status)
+         VALUES ($1, $2, $3, $4, $5, $6, 'generating')
+         RETURNING id`,
+        [projectId, prompt, provider, width, height, style]
+      );
+      const imageId = insertResult.rows[0].id;
+
+      // Enhance prompt with style - OPTIMIZED FOR STABLE DIFFUSION
+      const stylePrompts: Record<string, string> = {
+        realistic: 'professional photography, ultra realistic, hyperrealistic, 8k uhd, high resolution, detailed, sharp focus, studio lighting, DSLR quality',
+        cartoon: 'cartoon style, vibrant colors, playful illustration, digital art, vector art, clean lines, 2D animation style, pixar style',
+        artistic: 'artistic, creative, abstract art style, masterpiece, oil painting effect, impressionist, fine art, gallery quality',
+        minimalist: 'minimalist design, clean composition, simple shapes, modern design, flat design, negative space, elegant simplicity, scandinavian style',
+        professional: 'professional corporate design, business style, clean modern, polished, fintech aesthetic, premium quality, executive look, sophisticated',
+      };
+      
+      // Negative prompt to avoid common issues
+      const negativePrompt = 'text, watermark, logo, signature, words, letters, low quality, blurry, distorted, deformed, ugly, bad anatomy, duplicate, extra limbs';
+      
+      // Build enhanced prompt
+      let enhancedPrompt = prompt;
+      
+      // Add style keywords
+      enhancedPrompt = `${enhancedPrompt}, ${stylePrompts[style] || stylePrompts.professional}`;
+      
+      // Ensure English prompt quality keywords
+      if (!enhancedPrompt.toLowerCase().includes('4k') && !enhancedPrompt.toLowerCase().includes('high quality')) {
+        enhancedPrompt += ', high quality, 4k, detailed';
+      }
+
+      let imageUrl: string | null = null;
+
+      // Generate image based on provider
+      if (provider === 'huggingface') {
+        try {
+          const hfModel = config.huggingface_model || 'stabilityai/stable-diffusion-xl-base-1.0';
+          
+          this.logger.info('Generating image with HuggingFace', { 
+            model: hfModel, 
+            promptLength: enhancedPrompt.length,
+            width, 
+            height 
+          });
+          
+          const response = await fetch(`https://router.huggingface.co/hf-inference/models/${hfModel}`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKeys.huggingface}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              inputs: enhancedPrompt,
+              parameters: {
+                width: Math.min(width, 1024),
+                height: Math.min(height, 1024),
+                negative_prompt: negativePrompt,
+                guidance_scale: 7.5, // Balance between prompt adherence and creativity
+                num_inference_steps: 30, // More steps = better quality
+              },
+            }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Hugging Face API error: ${errorText}`);
+          }
+
+          // HuggingFace returns image as blob
+          const imageBlob = await response.arrayBuffer();
+          const base64Image = Buffer.from(imageBlob).toString('base64');
+          imageUrl = `data:image/png;base64,${base64Image}`;
+
+          // Update image record
+          await this.pool.query(
+            `UPDATE ai_generated_images 
+             SET image_url = $1, status = 'completed', model = $2
+             WHERE id = $3`,
+            [imageUrl, hfModel, imageId]
+          );
+        } catch (err: any) {
+          await this.pool.query(
+            `UPDATE ai_generated_images SET status = 'failed', error_message = $1 WHERE id = $2`,
+            [err.message, imageId]
+          );
+          throw err;
+        }
+      } else if (provider === 'dall-e') {
+        try {
+          const response = await fetch('https://api.openai.com/v1/images/generations', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKeys['dall-e']}`,
+            },
+            body: JSON.stringify({
+              model: 'dall-e-3',
+              prompt: enhancedPrompt,
+              n: 1,
+              size: `${width}x${height}`,
+              quality: 'standard',
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || 'Image generation failed');
+          }
+
+          const data = await response.json();
+          imageUrl = data.data[0]?.url;
+
+          // Update image record
+          await this.pool.query(
+            `UPDATE ai_generated_images 
+             SET image_url = $1, status = 'completed', model = 'dall-e-3'
+             WHERE id = $2`,
+            [imageUrl, imageId]
+          );
+        } catch (err: any) {
+          await this.pool.query(
+            `UPDATE ai_generated_images SET status = 'failed', error_message = $1 WHERE id = $2`,
+            [err.message, imageId]
+          );
+          throw err;
+        }
+      } else if (provider === 'stability') {
+        try {
+          const response = await fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKeys.stability}`,
+              'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+              text_prompts: [{ text: enhancedPrompt, weight: 1 }],
+              cfg_scale: 7,
+              width: Math.min(width, 1024),
+              height: Math.min(height, 1024),
+              samples: 1,
+              steps: 30,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Stability AI error: ${errorText}`);
+          }
+
+          const data = await response.json();
+          const base64Image = data.artifacts?.[0]?.base64;
+          if (base64Image) {
+            imageUrl = `data:image/png;base64,${base64Image}`;
+          }
+
+          await this.pool.query(
+            `UPDATE ai_generated_images 
+             SET image_url = $1, status = 'completed', model = 'stable-diffusion-xl-1024-v1-0'
+             WHERE id = $2`,
+            [imageUrl, imageId]
+          );
+        } catch (err: any) {
+          await this.pool.query(
+            `UPDATE ai_generated_images SET status = 'failed', error_message = $1 WHERE id = $2`,
+            [err.message, imageId]
+          );
+          throw err;
+        }
+      } else if (provider === 'gemini') {
+        // Gemini Imagen API
+        try {
+          const geminiApiKey = apiKeys['gemini'];
+          const model = 'imagen-3.0-generate-002'; // Latest Imagen model
+          const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${geminiApiKey}`;
+          
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              instances: [{ prompt: enhancedPrompt }],
+              parameters: {
+                sampleCount: 1,
+                aspectRatio: width > height ? '16:9' : (width < height ? '9:16' : '1:1'),
+                safetyFilterLevel: 'block_only_high',
+                personGeneration: 'allow_adult',
+              },
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || `Gemini Imagen API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          const base64Image = data.predictions?.[0]?.bytesBase64Encoded;
+          
+          if (base64Image) {
+            imageUrl = `data:image/png;base64,${base64Image}`;
+          } else {
+            throw new Error('Gemini Imagen did not return image data');
+          }
+
+          await this.pool.query(
+            `UPDATE ai_generated_images 
+             SET image_url = $1, status = 'completed', model = $2
+             WHERE id = $3`,
+            [imageUrl, model, imageId]
+          );
+        } catch (err: any) {
+          await this.pool.query(
+            `UPDATE ai_generated_images SET status = 'failed', error_message = $1 WHERE id = $2`,
+            [err.message, imageId]
+          );
+          throw err;
+        }
+      }
+
+      return reply.send({
+        success: true,
+        data: {
+          id: imageId,
+          imageUrl,
+          prompt: enhancedPrompt,
+          style,
+          width,
+          height,
+          provider,
+        },
+      });
+
+    } catch (error: any) {
+      console.error('[Image Generation Error]', error);
+      return reply.status(500).send({
+        success: false,
+        error: error.message || 'Failed to generate image',
+      });
+    }
+  }
+
+  /**
+   * Upload image from file or URL
+   */
+  async uploadImage(
+    request: FastifyRequest<{
+      Params: { id: string };
+      Body: {
+        imageUrl?: string;
+        imageData?: string; // Base64 encoded image
+        mimeType?: string;
+      };
+    }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const { id: projectId } = request.params;
+      const { imageUrl: externalUrl, imageData, mimeType } = request.body || {};
+
+      let finalImageUrl: string;
+
+      if (imageData) {
+        // Handle base64 encoded image from frontend
+        const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+        const detectedMimeType = mimeType || 'image/png';
+        
+        if (!validTypes.includes(detectedMimeType)) {
+          return reply.status(400).send({
+            success: false,
+            error: 'Invalid file type. Supported: PNG, JPG, WEBP, GIF',
+          });
+        }
+
+        // Validate base64 data size (max ~10MB base64 = ~7.5MB original)
+        if (imageData.length > 14 * 1024 * 1024) {
+          return reply.status(400).send({
+            success: false,
+            error: 'File too large. Maximum size is 10MB',
+          });
+        }
+
+        finalImageUrl = imageData.startsWith('data:') 
+          ? imageData 
+          : `data:${detectedMimeType};base64,${imageData}`;
+
+      } else if (externalUrl) {
+        // Handle external URL
+        try {
+          new URL(externalUrl);
+        } catch {
+          return reply.status(400).send({
+            success: false,
+            error: 'Invalid URL format',
+          });
+        }
+        finalImageUrl = externalUrl;
+      } else {
+        return reply.status(400).send({
+          success: false,
+          error: 'No image data or URL provided',
+        });
+      }
+
+      // Save to database
+      const result = await this.pool.query(
+        `INSERT INTO ai_generated_images (project_id, prompt, provider, image_url, status, width, height)
+         VALUES ($1, 'Uploaded image', 'upload', $2, 'completed', 0, 0)
+         RETURNING id`,
+        [projectId, finalImageUrl]
+      );
+
+      return reply.send({
+        success: true,
+        data: {
+          id: result.rows[0].id,
+          imageUrl: finalImageUrl,
+          prompt: 'Uploaded image',
+          provider: 'upload',
+        },
+      });
+    } catch (error: any) {
+      console.error('[Image Upload Error]', error);
+      return reply.status(500).send({
+        success: false,
+        error: error.message || 'Failed to upload image',
+      });
+    }
+  }
+
+  /**
+   * Get generated images for project
+   */
+  async getGeneratedImages(
+    request: FastifyRequest<{
+      Params: { id: string };
+      Querystring: { limit?: number; offset?: number };
+    }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const { id: projectId } = request.params;
+      const { limit = 20, offset = 0 } = request.query;
+
+      const result = await this.pool.query(
+        `SELECT * FROM ai_generated_images 
+         WHERE project_id = $1 
+         ORDER BY created_at DESC 
+         LIMIT $2 OFFSET $3`,
+        [projectId, limit, offset]
+      );
+
+      const countResult = await this.pool.query(
+        'SELECT COUNT(*) FROM ai_generated_images WHERE project_id = $1',
+        [projectId]
+      );
+
+      return reply.send({
+        success: true,
+        data: {
+          images: result.rows,
+          total: parseInt(countResult.rows[0].count),
+          limit,
+          offset,
+        },
+      });
+    } catch (error: any) {
+      this.logger.error('Failed to get generated images', { error });
+      return reply.status(500).send({
+        success: false,
+        error: 'Failed to get generated images',
+      });
+    }
+  }
+
+  /**
+   * Delete generated image
+   */
+  async deleteGeneratedImage(
+    request: FastifyRequest<{
+      Params: { id: string; imageId: string };
+    }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const { id: projectId, imageId } = request.params;
+
+      await this.pool.query(
+        'DELETE FROM ai_generated_images WHERE id = $1 AND project_id = $2',
+        [imageId, projectId]
+      );
+
+      return reply.send({
+        success: true,
+        message: 'Image deleted successfully',
+      });
+    } catch (error: any) {
+      this.logger.error('Failed to delete image', { error });
+      return reply.status(500).send({
+        success: false,
+        error: 'Failed to delete image',
+      });
+    }
+  }
+
+  // ===========================================================================
+  // SOCIAL MEDIA CONTENT
+  // ===========================================================================
+
+  /**
+   * Generate social media content from article
+   */
+  async generateSocialContent(
+    request: FastifyRequest<{
+      Params: { id: string };
+      Body: {
+        title: string;
+        content: string;
+        keyword: string;
+        url?: string;
+        platforms: ('facebook' | 'zalo' | 'tiktok' | 'pinterest')[];
+        language?: 'vi' | 'en';
+        imageUrl?: string;
+      };
+    }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const { id: projectId } = request.params;
+      const { 
+        title, 
+        content, 
+        keyword, 
+        url = 'https://vib.com.vn',
+        platforms = ['facebook', 'zalo'], 
+        language = 'vi',
+        imageUrl,
+      } = request.body;
+
+      if (!title || !content) {
+        return reply.status(400).send({
+          success: false,
+          error: 'title and content are required',
+        });
+      }
+
+      // Get AI config
+      const configResult = await this.pool.query(
+        'SELECT * FROM project_ai_configs WHERE project_id = $1',
+        [projectId]
+      );
+      const aiConfig = configResult.rows[0] || {};
+
+      // Platform-specific content configs
+      const platformConfigs: Record<string, { maxLength: number; hashtagCount: number; style: string; description: string }> = {
+        facebook: { 
+          maxLength: 500, 
+          hashtagCount: 5, 
+          style: 'professional, engaging',
+          description: 'Facebook post cần thuyết phục, có call-to-action mạnh mẽ, khuyến khích tương tác'
+        },
+        zalo: { 
+          maxLength: 300, 
+          hashtagCount: 3, 
+          style: 'friendly, conversational',
+          description: 'Zalo post ngắn gọn, thân thiện, gần gũi với người Việt Nam'
+        },
+        tiktok: { 
+          maxLength: 150, 
+          hashtagCount: 8, 
+          style: 'trendy, catchy, viral',
+          description: 'TikTok caption ngắn, bắt trend, thu hút sự chú ý ngay từ đầu'
+        },
+        pinterest: { 
+          maxLength: 200, 
+          hashtagCount: 10, 
+          style: 'descriptive, visual',
+          description: 'Pinterest description mô tả hình ảnh, inspiring, dễ tìm kiếm'
+        },
+      };
+
+      const socialPosts: any[] = [];
+
+      // Extract key points from content for AI
+      const contentSummary = content
+        .replace(/<[^>]*>/g, '') // Remove HTML tags
+        .replace(/\n+/g, ' ')     // Replace newlines with spaces
+        .substring(0, 1500);       // Take first 1500 chars for context
+
+      for (const platform of platforms) {
+        const config = platformConfigs[platform];
+        
+        // Generate platform-specific content using AI
+        let postContent = '';
+        let hashtags: string[] = [];
+
+        try {
+          // Try to use Ollama for smart content generation
+          if (aiConfig.ollama_url && aiConfig.ollama_model) {
+            const result = await this.generateSocialPostWithOllama(
+              aiConfig.ollama_url,
+              aiConfig.ollama_model,
+              {
+                title,
+                content: contentSummary,
+                keyword,
+                platform,
+                config,
+                language,
+                url,
+              }
+            );
+            postContent = result.content;
+            hashtags = result.hashtags;
+          } else {
+            // Fallback to smart template-based generation
+            const result = this.generateSmartSocialPost(
+              title,
+              contentSummary,
+              keyword,
+              platform,
+              config,
+              language,
+              url
+            );
+            postContent = result.content;
+            hashtags = result.hashtags;
+          }
+        } catch (aiError) {
+          this.logger.warn('AI social generation failed, using fallback', { aiError });
+          // Fallback to smart template
+          const result = this.generateSmartSocialPost(
+            title,
+            contentSummary,
+            keyword,
+            platform,
+            config,
+            language,
+            url
+          );
+          postContent = result.content;
+          hashtags = result.hashtags;
+        }
+
+        // Save to database
+        const insertResult = await this.pool.query(
+          `INSERT INTO social_media_posts 
+           (project_id, platform, title, content, hashtags, link_url, image_urls, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, 'draft')
+           RETURNING *`,
+          [
+            projectId,
+            platform,
+            title,
+            postContent,
+            hashtags,
+            url,
+            imageUrl ? [imageUrl] : [],
+          ]
+        );
+
+        socialPosts.push({
+          ...insertResult.rows[0],
+          hashtagString: hashtags.map(h => `#${h}`).join(' '),
+        });
+      }
+
+      return reply.send({
+        success: true,
+        data: {
+          posts: socialPosts,
+          message: `Generated ${socialPosts.length} social media posts`,
+        },
+      });
+
+    } catch (error: any) {
+      this.logger.error('Failed to generate social content', { error });
+      return reply.status(500).send({
+        success: false,
+        error: error.message || 'Failed to generate social content',
+      });
+    }
+  }
+
+  /**
+   * Generate social post using Ollama AI
+   */
+  private async generateSocialPostWithOllama(
+    ollamaUrl: string,
+    model: string,
+    params: {
+      title: string;
+      content: string;
+      keyword: string;
+      platform: string;
+      config: { maxLength: number; hashtagCount: number; style: string; description: string };
+      language: string;
+      url: string;
+    }
+  ): Promise<{ content: string; hashtags: string[] }> {
+    const { title, content, keyword, platform, config, language, url } = params;
+
+    const prompt = `Bạn là chuyên gia Social Media Marketing cho ngân hàng VIB (Vietnam International Bank).
+
+Nhiệm vụ: Tạo nội dung bài đăng ${platform.toUpperCase()} từ bài viết sau.
+
+=== THÔNG TIN BÀI VIẾT GỐC ===
+Tiêu đề: ${title}
+Từ khóa chính: ${keyword}
+Nội dung tóm tắt:
+${content}
+
+=== YÊU CẦU CHO ${platform.toUpperCase()} ===
+- Độ dài tối đa: ${config.maxLength} ký tự (BẮT BUỘC)
+- Phong cách: ${config.style}
+- Mô tả: ${config.description}
+- Link bài viết: ${url}
+
+=== QUY TẮC ===
+1. Nội dung phải liên quan trực tiếp đến bài viết gốc
+2. Sử dụng ngôn ngữ: ${language === 'vi' ? 'Tiếng Việt' : 'English'}
+3. Thêm emoji phù hợp với từng platform (${platform === 'tiktok' ? 'nhiều emoji bắt trend' : platform === 'facebook' ? '2-4 emoji' : '1-2 emoji'})
+4. ${platform === 'facebook' ? 'Kết thúc bằng câu hỏi hoặc CTA mời tương tác' : ''}
+5. ${platform === 'tiktok' ? 'Bắt đầu bằng hook gây tò mò, kết thúc với "Link bio 👆"' : ''}
+6. ${platform === 'zalo' ? 'Thân thiện như đang nhắn tin với bạn bè, thêm icon link' : ''}
+7. ${platform === 'pinterest' ? 'Mô tả visual, inspiring, dễ lưu pin' : ''}
+8. Mention VIB một cách tự nhiên nếu phù hợp
+9. KHÔNG sử dụng hashtag trong nội dung (sẽ được thêm riêng)
+
+=== HASHTAG ===
+Gợi ý ${config.hashtagCount} hashtags liên quan đến:
+- Keyword: ${keyword}
+- Ngân hàng/tài chính
+- ${platform === 'tiktok' ? 'Trending hashtags như #xuhuong #fyp #viral' : ''}
+
+=== OUTPUT FORMAT ===
+Trả về JSON với format:
+{
+  "content": "nội dung bài đăng (KHÔNG có hashtag)",
+  "hashtags": ["hashtag1", "hashtag2", ...]
+}
+
+CHỈ trả về JSON, không có text khác.`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
+
+    try {
+      const response = await fetch(`${ollamaUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          prompt,
+          stream: false,
+          options: {
+            temperature: 0.8,
+            num_predict: 1024,
+          },
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      if (!response.ok) {
+        throw new Error(`Ollama error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const responseText = data.response || '';
+
+      // Parse JSON from response
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          content: parsed.content?.substring(0, config.maxLength) || '',
+          hashtags: Array.isArray(parsed.hashtags) 
+            ? parsed.hashtags.map((h: string) => h.replace(/^#/, '')) 
+            : this.generateHashtags(keyword, language as 'vi' | 'en', config.hashtagCount),
+        };
+      }
+
+      throw new Error('Invalid JSON response from Ollama');
+    } catch (error) {
+      clearTimeout(timeout);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate smart social post without AI (improved template)
+   */
+  private generateSmartSocialPost(
+    title: string,
+    content: string,
+    keyword: string,
+    platform: string,
+    config: { maxLength: number; hashtagCount: number; style: string; description: string },
+    language: string,
+    url: string
+  ): { content: string; hashtags: string[] } {
+    // Extract key sentences from content
+    const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 20);
+    const keyPoints = sentences.slice(0, 3).map(s => s.trim());
+    
+    // Extract numbers/statistics from content
+    const numbers = content.match(/\d+[%,.]?\d*\s*(triệu|tỷ|%|năm|tháng|ngày)?/gi) || [];
+    const highlightNumber = numbers[0] || '';
+    
+    // Detect topic type
+    const isLoan = /vay|lãi suất|trả góp|khoản vay|tín dụng/i.test(keyword + content);
+    const isCard = /thẻ|card|tín dụng|cashback/i.test(keyword + content);
+    const isSavings = /tiết kiệm|gửi tiền|lãi suất/i.test(keyword + content);
+    const isAccount = /tài khoản|mở tài khoản|account/i.test(keyword + content);
+
+    let postContent = '';
+    let hashtags: string[] = [];
+
+    if (language === 'vi') {
+      switch (platform) {
+        case 'facebook':
+          if (isLoan) {
+            postContent = `💰 ${title}\n\n${keyPoints[0] || 'Cơ hội vay ưu đãi dành cho bạn!'}${highlightNumber ? ` Lãi suất chỉ từ ${highlightNumber}!` : ''}\n\n✅ Thủ tục đơn giản\n✅ Phê duyệt nhanh chóng\n✅ Lãi suất cạnh tranh\n\n👉 Xem chi tiết: ${url}\n\n💬 Bạn quan tâm đến gói vay nào? Comment để được tư vấn!`;
+          } else if (isCard) {
+            postContent = `💳 ${title}\n\n${keyPoints[0] || 'Ưu đãi thẻ độc quyền từ VIB!'}\n\n🎁 Hoàn tiền lên đến ${highlightNumber || '5%'}\n🎁 Miễn phí thường niên\n🎁 Quà tặng hấp dẫn\n\n👉 Đăng ký ngay: ${url}\n\n💬 Bạn đang dùng thẻ nào? Chia sẻ trải nghiệm nhé!`;
+          } else if (isSavings) {
+            postContent = `🏦 ${title}\n\n${keyPoints[0] || 'Gửi tiết kiệm an toàn, sinh lời tối ưu!'}\n\n📈 Lãi suất hấp dẫn ${highlightNumber || ''}\n🔒 An toàn, bảo mật\n💰 Linh hoạt kỳ hạn\n\n👉 Tìm hiểu thêm: ${url}\n\n💬 Bạn có kế hoạch tài chính gì cho năm nay?`;
+          } else {
+            postContent = `📢 ${title}\n\n${keyPoints[0] || content.substring(0, 200)}...\n\n✨ ${keyPoints[1] || 'Cơ hội không thể bỏ lỡ!'}\n\n👉 Xem chi tiết: ${url}\n\n💬 Bạn nghĩ sao về ưu đãi này? Comment bên dưới nhé!`;
+          }
+          hashtags = this.generateSmartHashtags(keyword, 'facebook', 'vi', isLoan, isCard, isSavings);
+          break;
+
+        case 'zalo':
+          if (isLoan) {
+            postContent = `💰 ${title}\n\nChào bạn! ${keyPoints[0]?.substring(0, 100) || 'Ưu đãi vay siêu hot!'} ${highlightNumber ? `Lãi suất từ ${highlightNumber}` : ''} 🔥\n\n📲 Xem ngay: ${url}`;
+          } else if (isCard) {
+            postContent = `💳 ${title}\n\nBạn ơi! ${keyPoints[0]?.substring(0, 100) || 'Ưu đãi thẻ cực khủng!'} 🎁\n\n📲 Đăng ký: ${url}`;
+          } else {
+            postContent = `🌟 ${title}\n\n${keyPoints[0]?.substring(0, 120) || content.substring(0, 120)}...\n\n📲 Chi tiết: ${url}`;
+          }
+          hashtags = this.generateSmartHashtags(keyword, 'zalo', 'vi', isLoan, isCard, isSavings);
+          break;
+
+        case 'tiktok':
+          if (isLoan) {
+            postContent = `POV: Bạn cần vay tiền nhưng sợ lãi suất cao? 🤯\n\n${highlightNumber ? `Chỉ ${highlightNumber}!` : 'Lãi suất siêu thấp!'} 💰\n\nLink bio 👆`;
+          } else if (isCard) {
+            postContent = `Thẻ nào cashback khủng nhất? 💳✨\n\n${highlightNumber ? `Hoàn tiền ${highlightNumber}` : 'Hoàn tiền cực sốc!'} 🤑\n\nLink bio 👆`;
+          } else {
+            postContent = `${title.substring(0, 50)} 🔥\n\n${keyPoints[0]?.substring(0, 60) || ''}...\n\nLink bio 👆`;
+          }
+          hashtags = this.generateSmartHashtags(keyword, 'tiktok', 'vi', isLoan, isCard, isSavings);
+          break;
+
+        case 'pinterest':
+          postContent = `${title}\n\n${keyPoints[0]?.substring(0, 150) || content.substring(0, 150)}\n\n💡 ${isLoan ? 'Mẹo vay tiền thông minh' : isCard ? 'Thẻ tín dụng ưu đãi' : 'Tài chính cá nhân'}`;
+          hashtags = this.generateSmartHashtags(keyword, 'pinterest', 'vi', isLoan, isCard, isSavings);
+          break;
+      }
+    } else {
+      // English content (similar structure)
+      switch (platform) {
+        case 'facebook':
+          postContent = `📢 ${title}\n\n${keyPoints[0] || content.substring(0, 200)}...\n\n✨ ${keyPoints[1] || 'Don\'t miss out!'}\n\n👉 Read more: ${url}\n\n💬 What do you think? Drop a comment below!`;
+          break;
+        case 'zalo':
+          postContent = `🌟 ${title}\n\n${keyPoints[0]?.substring(0, 120) || content.substring(0, 120)}...\n\n📲 Details: ${url}`;
+          break;
+        case 'tiktok':
+          postContent = `${title.substring(0, 50)} 🔥\n\n${keyPoints[0]?.substring(0, 60) || ''}...\n\nLink in bio 👆`;
+          break;
+        case 'pinterest':
+          postContent = `${title}\n\n${keyPoints[0]?.substring(0, 150) || content.substring(0, 150)}`;
+          break;
+      }
+      hashtags = this.generateHashtags(keyword, 'en', config.hashtagCount);
+    }
+
+    // Ensure content doesn't exceed maxLength
+    if (postContent.length > config.maxLength) {
+      postContent = postContent.substring(0, config.maxLength - 3) + '...';
+    }
+
+    return { content: postContent, hashtags };
+  }
+
+  /**
+   * Generate smart hashtags based on context
+   */
+  private generateSmartHashtags(
+    keyword: string,
+    platform: string,
+    language: string,
+    isLoan: boolean,
+    isCard: boolean,
+    isSavings: boolean
+  ): string[] {
+    const hashtags: string[] = [];
+    
+    // Clean keyword
+    const cleanKeyword = keyword.toLowerCase()
+      .replace(/[^\w\sàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]/gi, '')
+      .trim();
+    
+    // Add main keyword
+    const mainHashtag = cleanKeyword.replace(/\s+/g, '');
+    if (mainHashtag) hashtags.push(mainHashtag);
+
+    // Add VIB brand
+    hashtags.push('VIB');
+
+    // Add topic-specific hashtags
+    if (isLoan) {
+      hashtags.push('vayvon', 'laisuat', 'vaytindung', 'taichinhcanhan');
+    } else if (isCard) {
+      hashtags.push('thetindung', 'cashback', 'thenganhang', 'uudaithe');
+    } else if (isSavings) {
+      hashtags.push('tietkiem', 'guiTien', 'dautư', 'taichinh');
+    } else {
+      hashtags.push('nganhang', 'taichinh', 'tindung');
+    }
+
+    // Add platform-specific trending hashtags
+    if (platform === 'tiktok') {
+      hashtags.push('xuhuong', 'fyp', 'viral', 'trending', 'LearnOnTikTok');
+    } else if (platform === 'pinterest') {
+      hashtags.push('financetips', 'moneysaving', 'personalfinance', 'banking');
+    }
+
+    // Remove duplicates and limit
+    const maxHashtags = platform === 'tiktok' ? 8 : platform === 'pinterest' ? 10 : platform === 'facebook' ? 5 : 3;
+    return [...new Set(hashtags)].slice(0, maxHashtags);
+  }
+
+  /**
+   * Generate hashtags for keyword
+   */
+  private generateHashtags(keyword: string, language: 'vi' | 'en', count: number): string[] {
+    const hashtags: string[] = [];
+    
+    // Clean keyword and create base hashtag
+    const cleanKeyword = keyword.toLowerCase()
+      .replace(/[^\w\sàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]/gi, '')
+      .trim();
+    
+    // Add main keyword hashtag
+    const mainHashtag = cleanKeyword.replace(/\s+/g, '');
+    if (mainHashtag) hashtags.push(mainHashtag);
+
+    // Add word combinations
+    const words = cleanKeyword.split(/\s+/);
+    words.forEach(word => {
+      if (word.length > 2 && !hashtags.includes(word)) {
+        hashtags.push(word);
+      }
+    });
+
+    // Add related hashtags based on language
+    if (language === 'vi') {
+      const viHashtags = ['VIB', 'nganhang', 'taichinc', 'vayvon', 'tindung', 'dautư', 'tietkiem'];
+      viHashtags.forEach(h => {
+        if (hashtags.length < count && !hashtags.includes(h)) {
+          hashtags.push(h);
+        }
+      });
+    } else {
+      const enHashtags = ['VIB', 'banking', 'finance', 'loan', 'investment', 'savings'];
+      enHashtags.forEach(h => {
+        if (hashtags.length < count && !hashtags.includes(h)) {
+          hashtags.push(h);
+        }
+      });
+    }
+
+    return hashtags.slice(0, count);
+  }
+
+  /**
+   * Get social media posts
+   */
+  async getSocialPosts(
+    request: FastifyRequest<{
+      Params: { id: string };
+      Querystring: { 
+        platform?: string;
+        status?: string;
+        limit?: number;
+        offset?: number;
+      };
+    }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const { id: projectId } = request.params;
+      const { platform, status, limit = 20, offset = 0 } = request.query;
+
+      let query = 'SELECT * FROM social_media_posts WHERE project_id = $1';
+      const params: any[] = [projectId];
+      let paramIndex = 2;
+
+      if (platform) {
+        query += ` AND platform = $${paramIndex++}`;
+        params.push(platform);
+      }
+      if (status) {
+        query += ` AND status = $${paramIndex++}`;
+        params.push(status);
+      }
+
+      query += ` ORDER BY created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex}`;
+      params.push(limit, offset);
+
+      const result = await this.pool.query(query, params);
+
+      // Add hashtagString to each post
+      const posts = result.rows.map(post => ({
+        ...post,
+        hashtagString: (post.hashtags || []).map((h: string) => `#${h}`).join(' '),
+      }));
+
+      return reply.send({
+        success: true,
+        data: { posts },
+      });
+    } catch (error: any) {
+      this.logger.error('Failed to get social posts', { error });
+      return reply.status(500).send({
+        success: false,
+        error: 'Failed to get social posts',
+      });
+    }
+  }
+
+  /**
+   * Create social media post
+   */
+  async createSocialPost(
+    request: FastifyRequest<{
+      Params: { id: string };
+      Body: {
+        platform: string;
+        title: string;
+        content: string;
+        hashtags?: string[];
+        link_url?: string;
+        image_urls?: string[];
+        scheduled_at?: string;
+      };
+    }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const { id: projectId } = request.params;
+      const { platform, title, content, hashtags = [], link_url, image_urls = [], scheduled_at } = request.body;
+
+      const result = await this.pool.query(
+        `INSERT INTO social_media_posts 
+         (project_id, platform, title, content, hashtags, link_url, image_urls, scheduled_at, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING *`,
+        [projectId, platform, title, content, hashtags, link_url, image_urls, scheduled_at, scheduled_at ? 'scheduled' : 'draft']
+      );
+
+      return reply.send({
+        success: true,
+        data: result.rows[0],
+      });
+    } catch (error: any) {
+      this.logger.error('Failed to create social post', { error });
+      return reply.status(500).send({
+        success: false,
+        error: 'Failed to create social post',
+      });
+    }
+  }
+
+  /**
+   * Update social media post
+   */
+  async updateSocialPost(
+    request: FastifyRequest<{
+      Params: { id: string; postId: string };
+      Body: Partial<{
+        title: string;
+        content: string;
+        hashtags: string[];
+        hashtagString: string;
+        link_url: string;
+        image_urls: string[];
+        scheduled_at: string;
+        status: string;
+      }>;
+    }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const { id: projectId, postId } = request.params;
+      const updates = { ...request.body };
+      
+      this.logger.info('Updating social post', { projectId, postId, updates });
+      
+      // Remove hashtagString from updates since it's not a database column
+      // The hashtag_string is computed from hashtags array
+      delete updates.hashtagString;
+      
+      // Map camelCase to snake_case database column names
+      const columnMap: Record<string, string> = {
+        linkUrl: 'link_url',
+        link_url: 'link_url',
+        imageUrls: 'image_urls',
+        image_urls: 'image_urls',
+        scheduledAt: 'scheduled_at',
+        scheduled_at: 'scheduled_at',
+        linkTitle: 'link_title',
+        linkDescription: 'link_description',
+        ctaType: 'cta_type',
+        ctaUrl: 'cta_url',
+        videoUrl: 'video_url',
+      };
+
+      const fields: string[] = [];
+      const values: any[] = [];
+      let paramIndex = 1;
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value !== undefined) {
+          const columnName = columnMap[key] || key;
+          fields.push(`${columnName} = $${paramIndex++}`);
+          values.push(value);
+        }
+      });
+
+      if (fields.length === 0) {
+        return reply.status(400).send({
+          success: false,
+          error: 'No fields to update',
+        });
+      }
+
+      fields.push(`updated_at = NOW()`);
+      
+      // Add postId and projectId parameters correctly
+      const postIdParam = paramIndex++;
+      const projectIdParam = paramIndex;
+      values.push(postId, projectId);
+
+      const query = `UPDATE social_media_posts 
+         SET ${fields.join(', ')}
+         WHERE id = $${postIdParam} AND project_id = $${projectIdParam}
+         RETURNING *`;
+      
+      this.logger.info('Executing update query', { query, values });
+
+      const result = await this.pool.query(query, values);
+      
+      // Map database columns back to camelCase for response
+      const post = result.rows[0];
+      if (post) {
+        // Generate hashtagString from hashtags array
+        post.hashtagString = (post.hashtags || []).map((h: string) => `#${h}`).join(' ');
+      }
+
+      return reply.send({
+        success: true,
+        data: post,
+      });
+    } catch (error: any) {
+      this.logger.error('Failed to update social post', { error: error.message, stack: error.stack });
+      return reply.status(500).send({
+        success: false,
+        error: 'Failed to update social post: ' + error.message,
+      });
+    }
+  }
+
+  /**
+   * Delete social media post
+   */
+  async deleteSocialPost(
+    request: FastifyRequest<{
+      Params: { id: string; postId: string };
+    }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const { id: projectId, postId } = request.params;
+
+      await this.pool.query(
+        'DELETE FROM social_media_posts WHERE id = $1 AND project_id = $2',
+        [postId, projectId]
+      );
+
+      return reply.send({
+        success: true,
+        message: 'Post deleted successfully',
+      });
+    } catch (error: any) {
+      this.logger.error('Failed to delete social post', { error });
+      return reply.status(500).send({
+        success: false,
+        error: 'Failed to delete social post',
+      });
+    }
+  }
+
+  /**
+   * Publish social media post to platform
+   */
+  async publishSocialPost(
+    request: FastifyRequest<{
+      Params: { id: string; postId: string };
+    }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const { id: projectId, postId } = request.params;
+
+      // Get post details
+      const postResult = await this.pool.query(
+        'SELECT * FROM social_media_posts WHERE id = $1 AND project_id = $2',
+        [postId, projectId]
+      );
+
+      if (postResult.rows.length === 0) {
+        return reply.status(404).send({
+          success: false,
+          error: 'Post not found',
+        });
+      }
+
+      const post = postResult.rows[0];
+
+      // Get connected account for platform
+      const accountResult = await this.pool.query(
+        'SELECT * FROM social_media_accounts WHERE project_id = $1 AND platform = $2 AND is_active = true',
+        [projectId, post.platform]
+      );
+
+      if (accountResult.rows.length === 0) {
+        return reply.status(400).send({
+          success: false,
+          error: `No connected ${post.platform} account found. Please connect your account first.`,
+          needsConnection: true,
+          platform: post.platform,
+        });
+      }
+
+      const account = accountResult.rows[0];
+
+      // Publish based on platform
+      let platformPostId = null;
+      let publishError = null;
+
+      try {
+        switch (post.platform) {
+          case 'facebook':
+            platformPostId = await this.publishToFacebook(post, account);
+            break;
+          case 'zalo':
+            platformPostId = await this.publishToZalo(post, account);
+            break;
+          case 'tiktok':
+            platformPostId = await this.publishToTikTok(post, account);
+            break;
+          case 'pinterest':
+            platformPostId = await this.publishToPinterest(post, account);
+            break;
+          default:
+            throw new Error(`Unsupported platform: ${post.platform}`);
+        }
+      } catch (error: any) {
+        publishError = error.message;
+      }
+
+      // Update post status
+      if (platformPostId) {
+        await this.pool.query(
+          `UPDATE social_media_posts 
+           SET status = 'published', platform_post_id = $1, published_at = NOW(), updated_at = NOW()
+           WHERE id = $2`,
+          [platformPostId, postId]
+        );
+
+        return reply.send({
+          success: true,
+          data: {
+            postId,
+            platformPostId,
+            status: 'published',
+            publishedAt: new Date().toISOString(),
+          },
+        });
+      } else {
+        await this.pool.query(
+          `UPDATE social_media_posts 
+           SET status = 'failed', error_message = $1, updated_at = NOW()
+           WHERE id = $2`,
+          [publishError, postId]
+        );
+
+        return reply.status(500).send({
+          success: false,
+          error: publishError || 'Failed to publish post',
+        });
+      }
+
+    } catch (error: any) {
+      this.logger.error('Failed to publish social post', { error });
+      return reply.status(500).send({
+        success: false,
+        error: error.message || 'Failed to publish post',
+      });
+    }
+  }
+
+  // Platform-specific publish methods
+  private async publishToFacebook(post: any, account: any): Promise<string> {
+    // Facebook Graph API
+    const accessToken = account.access_token;
+    const pageId = account.page_id || account.account_id;
+    
+    const hashtagString = (post.hashtags || []).map((h: string) => `#${h}`).join(' ');
+    const fullContent = `${post.content}\n\n${hashtagString}`;
+    
+    // Check if post has images
+    const imageUrls = post.image_urls || [];
+    
+    if (imageUrls.length > 0) {
+      // Post with image(s) - use photos endpoint
+      // For single image, use /photos endpoint
+      // For multiple images, use /photos for each then create a multi-photo post
+      
+      if (imageUrls.length === 1) {
+        // Single image post
+        const imageData = imageUrls[0];
+        
+        // Check if it's base64 or URL
+        if (imageData.startsWith('data:image')) {
+          // It's base64 - need to upload via multipart/form-data
+          const base64Match = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
+          if (!base64Match) {
+            this.logger.error('Invalid base64 image format');
+            // Fallback to text-only post
+            return this.postTextOnlyToFacebook(pageId, fullContent, post.link_url, accessToken);
+          }
+          
+          const imageType = base64Match[1]; // png, jpeg, etc
+          const base64Data = base64Match[2];
+          const imageBuffer = Buffer.from(base64Data, 'base64');
+          
+          // Create multipart form data manually
+          const boundary = '----FormBoundary' + Math.random().toString(36).substring(2);
+          const CRLF = '\r\n';
+          
+          // Build multipart body
+          let bodyParts: Buffer[] = [];
+          
+          // Add caption field
+          bodyParts.push(Buffer.from(
+            `--${boundary}${CRLF}` +
+            `Content-Disposition: form-data; name="caption"${CRLF}${CRLF}` +
+            `${fullContent}${CRLF}`
+          ));
+          
+          // Add access_token field
+          bodyParts.push(Buffer.from(
+            `--${boundary}${CRLF}` +
+            `Content-Disposition: form-data; name="access_token"${CRLF}${CRLF}` +
+            `${accessToken}${CRLF}`
+          ));
+          
+          // Add image file
+          bodyParts.push(Buffer.from(
+            `--${boundary}${CRLF}` +
+            `Content-Disposition: form-data; name="source"; filename="image.${imageType}"${CRLF}` +
+            `Content-Type: image/${imageType}${CRLF}${CRLF}`
+          ));
+          bodyParts.push(imageBuffer);
+          bodyParts.push(Buffer.from(`${CRLF}--${boundary}--${CRLF}`));
+          
+          const fullBody = Buffer.concat(bodyParts);
+          
+          this.logger.info('Uploading image to Facebook via multipart', { 
+            pageId, 
+            imageSize: imageBuffer.length,
+            imageType 
+          });
+          
+          const response = await fetch(
+            `https://graph.facebook.com/v18.0/${pageId}/photos`,
+            {
+              method: 'POST',
+              headers: { 
+                'Content-Type': `multipart/form-data; boundary=${boundary}`,
+              },
+              body: fullBody,
+            }
+          );
+
+          if (!response.ok) {
+            const error = await response.json();
+            this.logger.error('Facebook photo upload error', { error });
+            throw new Error(error.error?.message || 'Facebook API error');
+          }
+
+          const data = await response.json();
+          this.logger.info('Facebook photo posted successfully', { postId: data.post_id || data.id });
+          return data.post_id || data.id;
+          
+        } else if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+          // It's a URL - use the url parameter
+          const response = await fetch(
+            `https://graph.facebook.com/v18.0/${pageId}/photos`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                url: imageData,
+                caption: fullContent,
+                access_token: accessToken,
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            const error = await response.json();
+            this.logger.error('Facebook photo post error', { error });
+            throw new Error(error.error?.message || 'Facebook API error');
+          }
+
+          const data = await response.json();
+          return data.post_id || data.id;
+        } else {
+          this.logger.warn('Unknown image format, skipping image', { preview: imageData.substring(0, 50) });
+        }
+      } else {
+        // Multiple images - upload each as unpublished, then create multi-photo post
+        const photoIds: string[] = [];
+        
+        for (const imageData of imageUrls.slice(0, 10)) { // Facebook allows max 10 photos
+          if (imageData.startsWith('data:image')) {
+            // Base64 image
+            const base64Match = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
+            if (!base64Match) continue;
+            
+            const imageType = base64Match[1];
+            const base64Data = base64Match[2];
+            const imageBuffer = Buffer.from(base64Data, 'base64');
+            
+            const boundary = '----FormBoundary' + Math.random().toString(36).substring(2);
+            const CRLF = '\r\n';
+            
+            let bodyParts: Buffer[] = [];
+            
+            // published=false for multi-photo staging
+            bodyParts.push(Buffer.from(
+              `--${boundary}${CRLF}` +
+              `Content-Disposition: form-data; name="published"${CRLF}${CRLF}` +
+              `false${CRLF}`
+            ));
+            
+            bodyParts.push(Buffer.from(
+              `--${boundary}${CRLF}` +
+              `Content-Disposition: form-data; name="access_token"${CRLF}${CRLF}` +
+              `${accessToken}${CRLF}`
+            ));
+            
+            bodyParts.push(Buffer.from(
+              `--${boundary}${CRLF}` +
+              `Content-Disposition: form-data; name="source"; filename="image.${imageType}"${CRLF}` +
+              `Content-Type: image/${imageType}${CRLF}${CRLF}`
+            ));
+            bodyParts.push(imageBuffer);
+            bodyParts.push(Buffer.from(`${CRLF}--${boundary}--${CRLF}`));
+            
+            const fullBody = Buffer.concat(bodyParts);
+            
+            const uploadResponse = await fetch(
+              `https://graph.facebook.com/v18.0/${pageId}/photos`,
+              {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': `multipart/form-data; boundary=${boundary}`,
+                },
+                body: fullBody,
+              }
+            );
+
+            if (uploadResponse.ok) {
+              const uploadData = await uploadResponse.json();
+              photoIds.push(uploadData.id);
+            }
+          } else if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+            // URL image
+            const uploadResponse = await fetch(
+              `https://graph.facebook.com/v18.0/${pageId}/photos`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  url: imageData,
+                  published: false,
+                  access_token: accessToken,
+                }),
+              }
+            );
+
+            if (uploadResponse.ok) {
+              const uploadData = await uploadResponse.json();
+              photoIds.push(uploadData.id);
+            }
+          }
+        }
+
+        if (photoIds.length > 0) {
+          // Create multi-photo post
+          const attachedMedia = photoIds.map(id => ({ media_fbid: id }));
+          
+          const response = await fetch(
+            `https://graph.facebook.com/v18.0/${pageId}/feed`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                message: fullContent,
+                attached_media: attachedMedia,
+                access_token: accessToken,
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            const error = await response.json();
+            this.logger.error('Facebook multi-photo post error', { error });
+            throw new Error(error.error?.message || 'Facebook API error');
+          }
+
+          const data = await response.json();
+          return data.id;
+        }
+      }
+    }
+    
+    // No image or image upload failed - post text only with link
+    return this.postTextOnlyToFacebook(pageId, fullContent, post.link_url, accessToken);
+  }
+  
+  private async postTextOnlyToFacebook(pageId: string, content: string, linkUrl: string | undefined, accessToken: string): Promise<string> {
+    const response = await fetch(
+      `https://graph.facebook.com/v18.0/${pageId}/feed`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: content,
+          link: linkUrl,
+          access_token: accessToken,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      this.logger.error('Facebook text post error', { error });
+      throw new Error(error.error?.message || 'Facebook API error');
+    }
+
+    const data = await response.json();
+    return data.id;
+  }
+
+  private async publishToZalo(post: any, account: any): Promise<string> {
+    // Zalo OA API
+    const accessToken = account.access_token;
+    
+    const hashtagString = (post.hashtags || []).map((h: string) => `#${h}`).join(' ');
+    const fullContent = `${post.content}\n\n${hashtagString}`;
+
+    // Note: Zalo OA API requires specific endpoint and format
+    // This is a placeholder - actual implementation depends on Zalo API version
+    const response = await fetch(
+      'https://openapi.zalo.me/v2.0/article/create',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'access_token': accessToken,
+        },
+        body: JSON.stringify({
+          type: 'normal',
+          title: post.title,
+          description: fullContent.substring(0, 300),
+          body: [
+            {
+              type: 'text',
+              content: fullContent,
+            },
+          ],
+          status: 'show',
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Zalo API error');
+    }
+
+    const data = await response.json();
+    return data.data?.id || 'zalo-post';
+  }
+
+  private async publishToTikTok(post: any, account: any): Promise<string> {
+    // TikTok API - Note: TikTok primarily supports video content
+    // This creates a draft/placeholder for video posts
+    throw new Error('TikTok posting requires video content. Please upload via TikTok app.');
+  }
+
+  private async publishToPinterest(post: any, account: any): Promise<string> {
+    // Pinterest API
+    const accessToken = account.access_token;
+    
+    if (!post.image_urls || post.image_urls.length === 0) {
+      throw new Error('Pinterest requires an image');
+    }
+
+    const response = await fetch(
+      'https://api.pinterest.com/v5/pins',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          title: post.title,
+          description: post.content,
+          link: post.link_url,
+          media_source: {
+            source_type: 'image_url',
+            url: post.image_urls[0],
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Pinterest API error');
+    }
+
+    const data = await response.json();
+    return data.id;
+  }
+
+  // ===========================================================================
+  // SOCIAL MEDIA ACCOUNTS
+  // ===========================================================================
+
+  /**
+   * Get connected social media accounts
+   */
+  async getSocialAccounts(
+    request: FastifyRequest<{
+      Params: { id: string };
+    }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const { id: projectId } = request.params;
+
+      const result = await this.pool.query(
+        `SELECT id, platform, account_name, account_type, page_name, profile_url, avatar_url, is_active, last_sync_at, created_at
+         FROM social_media_accounts 
+         WHERE project_id = $1 
+         ORDER BY platform, created_at DESC`,
+        [projectId]
+      );
+
+      return reply.send({
+        success: true,
+        data: { accounts: result.rows },
+      });
+    } catch (error: any) {
+      this.logger.error('Failed to get social accounts', { error });
+      return reply.status(500).send({
+        success: false,
+        error: 'Failed to get social accounts',
+      });
+    }
+  }
+
+  /**
+   * Connect social media account
+   */
+  async connectSocialAccount(
+    request: FastifyRequest<{
+      Params: { id: string };
+      Body: {
+        platform: string;
+        access_token: string;
+        refresh_token?: string;
+        account_id?: string;
+        account_name?: string;
+        account_type?: string;
+        page_id?: string;
+        page_name?: string;
+        profile_url?: string;
+        avatar_url?: string;
+        token_expires_at?: string;
+      };
+    }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const { id: projectId } = request.params;
+      const {
+        platform,
+        access_token,
+        refresh_token,
+        account_id: providedAccountId,
+        account_name: providedAccountName,
+        account_type = 'page',
+        page_id,
+        page_name: providedPageName,
+        profile_url,
+        avatar_url,
+        token_expires_at,
+      } = request.body;
+
+      if (!platform || !access_token) {
+        return reply.status(400).send({
+          success: false,
+          error: 'platform and access_token are required',
+        });
+      }
+
+      // For Facebook, verify token and get account info
+      let accountId = providedAccountId;
+      let accountName = providedAccountName;
+      let pageName = providedPageName;
+      let pageProfileUrl = profile_url;
+      let pageAvatarUrl = avatar_url;
+
+      if (platform === 'facebook') {
+        try {
+          // Verify token by getting user/page info from Facebook Graph API
+          const fbApiUrl = page_id 
+            ? `https://graph.facebook.com/v18.0/${page_id}?fields=id,name,picture&access_token=${access_token}`
+            : `https://graph.facebook.com/v18.0/me?fields=id,name,picture&access_token=${access_token}`;
+
+          const fbResponse = await fetch(fbApiUrl);
+          const fbData = await fbResponse.json();
+
+          if (fbData.error) {
+            this.logger.error('Facebook API error', { error: fbData.error });
+            return reply.status(400).send({
+              success: false,
+              error: `Facebook Error: ${fbData.error.message || 'Invalid access token'}`,
+              details: fbData.error,
+            });
+          }
+
+          // Use data from Facebook API
+          accountId = accountId || fbData.id || page_id;
+          accountName = accountName || fbData.name;
+          pageName = pageName || fbData.name;
+          pageAvatarUrl = pageAvatarUrl || fbData.picture?.data?.url;
+          pageProfileUrl = pageProfileUrl || `https://facebook.com/${fbData.id}`;
+
+          this.logger.info('Facebook account verified', { 
+            accountId, 
+            accountName, 
+            pageName 
+          });
+
+        } catch (fbError: any) {
+          this.logger.error('Failed to verify Facebook token', { error: fbError });
+          return reply.status(400).send({
+            success: false,
+            error: 'Failed to verify Facebook access token. Please check if the token is valid.',
+          });
+        }
+      } else {
+        // For other platforms, use provided ID or generate one
+        accountId = accountId || page_id || `${platform}_${Date.now()}`;
+        accountName = accountName || `${platform} Account`;
+      }
+
+      // Upsert account
+      const result = await this.pool.query(
+        `INSERT INTO social_media_accounts 
+         (project_id, platform, account_id, account_name, account_type, access_token, refresh_token, 
+          page_id, page_name, profile_url, avatar_url, token_expires_at, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true)
+         ON CONFLICT (project_id, platform, account_id) 
+         DO UPDATE SET 
+           access_token = EXCLUDED.access_token,
+           refresh_token = EXCLUDED.refresh_token,
+           account_name = EXCLUDED.account_name,
+           page_id = EXCLUDED.page_id,
+           page_name = EXCLUDED.page_name,
+           profile_url = EXCLUDED.profile_url,
+           avatar_url = EXCLUDED.avatar_url,
+           token_expires_at = EXCLUDED.token_expires_at,
+           is_active = true,
+           updated_at = NOW()
+         RETURNING id, platform, account_id, account_name, account_type, page_id, page_name, profile_url, avatar_url, is_active`,
+        [projectId, platform, accountId, accountName, account_type, access_token, refresh_token,
+         page_id || accountId, pageName || accountName, pageProfileUrl, pageAvatarUrl, token_expires_at]
+      );
+
+      return reply.send({
+        success: true,
+        data: { account: result.rows[0] },
+        message: `${platform} account connected successfully`,
+      });
+    } catch (error: any) {
+      this.logger.error('Failed to connect social account', { error });
+      return reply.status(500).send({
+        success: false,
+        error: error.message || 'Failed to connect social account',
+      });
+    }
+  }
+
+  /**
+   * Disconnect social media account
+   */
+  async disconnectSocialAccount(
+    request: FastifyRequest<{
+      Params: { id: string; accountId: string };
+    }>,
+    reply: FastifyReply
+  ): Promise<void> {
+    try {
+      const { id: projectId, accountId } = request.params;
+
+      await this.pool.query(
+        'UPDATE social_media_accounts SET is_active = false, updated_at = NOW() WHERE id = $1 AND project_id = $2',
+        [accountId, projectId]
+      );
+
+      return reply.send({
+        success: true,
+        message: 'Account disconnected successfully',
+      });
+    } catch (error: any) {
+      this.logger.error('Failed to disconnect social account', { error });
+      return reply.status(500).send({
+        success: false,
+        error: 'Failed to disconnect social account',
+      });
+    }
   }
 }

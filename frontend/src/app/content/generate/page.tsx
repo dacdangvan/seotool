@@ -24,11 +24,14 @@ import { useSearchParams } from 'next/navigation';
 import { cn, formatNumber, formatCompact } from '@/lib/utils';
 import type { SearchIntent } from '@/types/keyword.types';
 import { SEARCH_INTENT_CONFIG, OPPORTUNITY_CONFIG } from '@/types/keyword.types';
+import { useProject } from '@/context/ProjectContext';
 import {
   ContentBriefDisplay,
   BriefGeneratorForm,
   generateContentBrief,
   AIContentWriter,
+  AIImageGenerator,
+  SocialMediaGenerator,
   type FullContentBrief,
   type BriefGenerationInput,
   type GeneratedContent,
@@ -48,6 +51,8 @@ import {
   PenTool,
   Shield,
   Layers,
+  Image as ImageIcon,
+  Share2,
 } from 'lucide-react';
 
 // =============================================================================
@@ -122,6 +127,7 @@ type Step = 'select' | 'brief' | 'approve' | 'generate';
 
 export default function AIContentGenerationPage() {
   const searchParams = useSearchParams();
+  const { currentProject } = useProject();
   const [currentStep, setCurrentStep] = useState<Step>('select');
   const [selectedKeyword, setSelectedKeyword] = useState<BriefGenerationInput['keyword'] | null>(null);
   const [contentBrief, setContentBrief] = useState<FullContentBrief | null>(null);
@@ -187,7 +193,7 @@ export default function AIContentGenerationPage() {
         
         const autoBrief: FullContentBrief = {
           brief_id: `brief_${Date.now()}`,
-          project_id: 'project_demo_001',
+          project_id: currentProject?.id || 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           generated_by: 'ai',
@@ -280,7 +286,7 @@ export default function AIContentGenerationPage() {
         setCurrentStep('brief');
       }
     }
-  }, [searchParams]);
+  }, [searchParams, currentProject]);
 
   // Filter keywords
   const filteredKeywords = useMemo(() => {
@@ -528,7 +534,7 @@ export default function AIContentGenerationPage() {
           <div className="max-w-2xl mx-auto">
             <BriefGeneratorForm
               keyword={selectedKeyword}
-              projectId="project_demo_001"
+              projectId={currentProject?.id || 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'}
               urlInventory={MOCK_URL_INVENTORY}
               brandProfile={MOCK_BRAND_PROFILE}
               onGenerate={handleBriefGenerated}
@@ -587,39 +593,261 @@ export default function AIContentGenerationPage() {
           </div>
         )}
 
-        {/* Step 4: Generate Content */}
+        {/* Step 4: Generate Content with Image & Social Media */}
         {currentStep === 'generate' && contentBrief && (
-          <div className="space-y-6">
-            {/* Success Banner */}
-            {generatedContent && (
-              <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-200 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="h-6 w-6 text-green-600" />
-                  <div>
-                    <p className="font-semibold text-green-800">Content Generated Successfully!</p>
-                    <p className="text-sm text-gray-600">
-                      {generatedContent.wordCount} words • Generated in {(generatedContent.generationTimeMs / 1000).toFixed(1)}s
-                    </p>
-                  </div>
+          <GenerateContentWithExtras
+            contentBrief={contentBrief}
+            generatedContent={generatedContent}
+            onContentGenerated={handleContentGenerated}
+            onStartNew={handleStartNew}
+          />
+        )}
+      </main>
+    </div>
+  );
+}
+
+// =============================================================================
+// GENERATE CONTENT WITH IMAGE & SOCIAL MEDIA TABS
+// =============================================================================
+
+type GenerateTab = 'content' | 'image' | 'social';
+
+interface GenerateContentWithExtrasProps {
+  contentBrief: FullContentBrief;
+  generatedContent: GeneratedContent | null;
+  onContentGenerated: (content: GeneratedContent) => void;
+  onStartNew: () => void;
+}
+
+function GenerateContentWithExtras({
+  contentBrief,
+  generatedContent,
+  onContentGenerated,
+  onStartNew,
+}: GenerateContentWithExtrasProps) {
+  const [activeTab, setActiveTab] = useState<GenerateTab>('content');
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [generatedImages, setGeneratedImages] = useState<Array<{
+    id: string;
+    imageUrl: string;
+    prompt: string;
+    style: string;
+    width: number;
+    height: number;
+  }>>([]);
+  const [autoSwitched, setAutoSwitched] = useState(false); // Track if we've auto-switched
+
+  // Auto-switch to Image tab when content is generated
+  useEffect(() => {
+    if (generatedContent && !autoSwitched) {
+      // Small delay to show success message first
+      const timer = setTimeout(() => {
+        setActiveTab('image');
+        setAutoSwitched(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [generatedContent, autoSwitched]);
+
+  // Extract article info for social media
+  const articleTitle = generatedContent 
+    ? (generatedContent.content.split('\n')[0]?.replace(/^#\s*/, '') || contentBrief.seo_targeting.primary_keyword)
+    : contentBrief.seo_targeting.primary_keyword;
+  
+  const articleContent = generatedContent?.content || '';
+  const keyword = contentBrief.seo_targeting.primary_keyword;
+
+  const tabs = [
+    { id: 'content' as GenerateTab, name: 'Nội dung', icon: PenTool, color: 'purple' },
+    { id: 'image' as GenerateTab, name: 'Hình ảnh', icon: ImageIcon, color: 'pink' },
+    { id: 'social' as GenerateTab, name: 'Social Media', icon: Share2, color: 'blue' },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Success Banner with auto-switch notification */}
+      {generatedContent && (
+        <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-200 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-6 w-6 text-green-600" />
+            <div>
+              <p className="font-semibold text-green-800">Content Generated Successfully!</p>
+              <p className="text-sm text-gray-600">
+                {generatedContent.wordCount} words • Generated in {(generatedContent.generationTimeMs / 1000).toFixed(1)}s
+                {activeTab === 'image' && !autoSwitched && (
+                  <span className="ml-2 text-blue-600">→ Đang chuyển sang tạo ảnh...</span>
+                )}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onStartNew}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 flex items-center gap-2"
+          >
+            <Sparkles className="h-4 w-4" />
+            Create Another
+          </button>
+        </div>
+      )}
+
+      {/* Tabs Navigation */}
+      <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl">
+        {tabs.map(tab => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          const colorMap = {
+            purple: isActive ? 'bg-purple-600 text-white' : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50',
+            pink: isActive ? 'bg-pink-600 text-white' : 'text-gray-600 hover:text-pink-600 hover:bg-pink-50',
+            blue: isActive ? 'bg-blue-600 text-white' : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50',
+          };
+          
+          // Show lock indicator for tabs that need content first
+          const needsContent = (tab.id === 'image' || tab.id === 'social') && !generatedContent;
+          
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              disabled={needsContent}
+              className={cn(
+                'flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all',
+                colorMap[tab.color as keyof typeof colorMap],
+                needsContent && 'opacity-50 cursor-not-allowed'
+              )}
+            >
+              <Icon className="w-5 h-5" />
+              <span>{tab.name}</span>
+              {needsContent && <span className="text-xs">(tạo nội dung trước)</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Workflow Progress */}
+      <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border">
+        <Sparkles className="w-4 h-4 text-purple-600" />
+        <div className="flex items-center gap-1 text-sm">
+          <span className={cn('font-medium', generatedContent ? 'text-green-600' : 'text-gray-500')}>
+            1. Bài viết {generatedContent && '✓'}
+          </span>
+          <ChevronRight className="w-4 h-4 text-gray-400" />
+          <span className={cn('font-medium', generatedImageUrl ? 'text-green-600' : 'text-gray-500')}>
+            2. Hình ảnh {generatedImageUrl && '✓'}
+          </span>
+          <ChevronRight className="w-4 h-4 text-gray-400" />
+          <span className="font-medium text-gray-500">
+            3. Social Media
+          </span>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="min-h-[500px]">
+        {activeTab === 'content' && (
+          <AIContentWriter
+            brief={contentBrief}
+            initialContent={generatedContent}
+            onContentGenerated={onContentGenerated}
+          />
+        )}
+
+        {activeTab === 'image' && (
+          <>
+            {generatedContent ? (
+              <div className="space-y-4">
+                {/* Context from article */}
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    Tự động tạo prompt từ nội dung bài viết
+                  </h4>
+                  <p className="text-sm text-blue-700">
+                    Prompt đã được điền sẵn dựa trên nội dung bài "<strong>{articleTitle}</strong>". 
+                    Bạn có thể chỉnh sửa hoặc tạo ngay!
+                  </p>
                 </div>
+                
+                <AIImageGenerator
+                  projectId={contentBrief.project_id}
+                  keyword={keyword}
+                  articleTitle={articleTitle}
+                  articleContent={articleContent}
+                  initialImages={generatedImages}
+                  onImageGenerated={(url, allImages) => {
+                    setGeneratedImageUrl(url);
+                    setGeneratedImages(allImages);
+                    // Auto-switch to Social tab after image generated
+                    setTimeout(() => setActiveTab('social'), 1500);
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border p-8 text-center">
+                <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Cần tạo nội dung trước
+                </h3>
+                <p className="text-gray-500 max-w-md mx-auto mb-4">
+                  Vui lòng tạo bài viết ở tab "Nội dung" trước khi tạo hình ảnh minh họa.
+                </p>
                 <button
-                  onClick={handleStartNew}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 flex items-center gap-2"
+                  onClick={() => setActiveTab('content')}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700"
                 >
-                  <Sparkles className="h-4 w-4" />
-                  Create Another
+                  Tạo nội dung
                 </button>
               </div>
             )}
-
-            {/* AI Content Writer */}
-            <AIContentWriter
-              brief={contentBrief}
-              onContentGenerated={handleContentGenerated}
-            />
-          </div>
+          </>
         )}
-      </main>
+
+        {activeTab === 'social' && (
+          <>
+            {generatedContent ? (
+              <div className="space-y-4">
+                {/* Context summary */}
+                <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                  <h4 className="font-medium text-purple-900 mb-2 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" />
+                    Tạo nội dung Social Media từ bài viết
+                  </h4>
+                  <div className="text-sm text-purple-700 space-y-1">
+                    <p>📝 Bài viết: <strong>{articleTitle}</strong></p>
+                    {generatedImageUrl && <p>🖼️ Đã có ảnh minh họa sẵn sàng</p>}
+                    <p>🔑 Keyword: {keyword}</p>
+                  </div>
+                </div>
+
+                <SocialMediaGenerator
+                  projectId={contentBrief.project_id}
+                  articleTitle={articleTitle}
+                  articleContent={articleContent}
+                  keyword={keyword}
+                  articleUrl={`https://vib.com.vn/${keyword.toLowerCase().replace(/\s+/g, '-')}`}
+                  articleImage={generatedImageUrl || undefined}
+                />
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl border p-8 text-center">
+                <Share2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Cần tạo nội dung trước
+                </h3>
+                <p className="text-gray-500 max-w-md mx-auto mb-4">
+                  Vui lòng tạo bài viết ở tab "Nội dung" trước khi tạo nội dung Social Media.
+                </p>
+                <button
+                  onClick={() => setActiveTab('content')}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700"
+                >
+                  Tạo nội dung
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

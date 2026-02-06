@@ -7,7 +7,8 @@
   "scripts": {
     "measure": "tsx src/measure.ts",
     "measure:5": "tsx src/measure.ts a1b2c3d4-e5f6-7890-abcd-ef1234567890 5",
-    "measure:all": "tsx src/measure.ts a1b2c3d4-e5f6-7890-abcd-ef1234567890 100"
+    "measure:all": "tsx src/measure.ts a1b2c3d4-e5f6-7890-abcd-ef1234567890 100",
+    "sync-pagespeed": "tsx src/sync_pagespeed.ts"
   },
   "dependencies": {
     "pg": "^8.11.3",

@@ -10,6 +10,7 @@
     "sync": "tsx src/sync.ts",
     "sync-project": "tsx src/sync_project.ts",
     "sync-cwv": "tsx src/sync_cwv.ts",
+    "sync-crux": "tsx src/sync_crux.ts",
     "sync-all": "tsx src/sync_project.ts --all",
     "setup-project": "tsx src/setup_project.ts",
     "test-connection": "tsx src/test_connection.ts",

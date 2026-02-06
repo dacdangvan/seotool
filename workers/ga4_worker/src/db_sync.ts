@@ -138,12 +138,31 @@ export class GA4DatabaseSync {
    * Upsert single CWV result
    */
   private async upsertCWVResult(data: CWVData): Promise<void> {
+    // Normalize device to lowercase (GA4 returns 'Mobile', 'Desktop', etc.)
+    const normalizedDevice = data.device.toLowerCase();
+    // Skip if device is not mobile or desktop (e.g., tablet)
+    if (normalizedDevice !== 'mobile' && normalizedDevice !== 'desktop') {
+      console.log(`[Sync] Skipping unsupported device type: ${data.device} for ${data.pagePath}`);
+      return;
+    }
+    const device = normalizedDevice as 'mobile' | 'desktop';
+    
+    // Clamp values to prevent numeric overflow (max 99999999.99 for numeric(10,2))
+    const maxValue = 99999999;
+    const clampValue = (v: number) => Math.max(0, Math.min(maxValue, v));
+    
+    const lcp = clampValue(data.lcp);
+    const cls = Math.max(0, Math.min(9999.9999, data.cls)); // cls is numeric(10,4)
+    const inp = data.inp ? clampValue(data.inp) : null;
+    const fcp = clampValue(data.fcp);
+    const ttfb = clampValue(data.ttfb);
+    
     // Calculate statuses based on Google's thresholds
-    const lcpStatus = this.getCWVStatus(data.lcp, { good: 2500, poor: 4000 });
-    const clsStatus = this.getCWVStatus(data.cls, { good: 0.1, poor: 0.25 });
-    const inpStatus = data.inp ? this.getCWVStatus(data.inp, { good: 200, poor: 500 }) : null;
-    const fcpStatus = this.getCWVStatus(data.fcp, { good: 1800, poor: 3000 });
-    const ttfbStatus = this.getCWVStatus(data.ttfb, { good: 800, poor: 1800 });
+    const lcpStatus = this.getCWVStatus(lcp, { good: 2500, poor: 4000 });
+    const clsStatus = this.getCWVStatus(cls, { good: 0.1, poor: 0.25 });
+    const inpStatus = inp ? this.getCWVStatus(inp, { good: 200, poor: 500 }) : null;
+    const fcpStatus = this.getCWVStatus(fcp, { good: 1800, poor: 3000 });
+    const ttfbStatus = this.getCWVStatus(ttfb, { good: 800, poor: 1800 });
 
     // Calculate overall status (worst of LCP, CLS, INP)
     const primaryStatuses = [lcpStatus, clsStatus];
@@ -151,11 +170,12 @@ export class GA4DatabaseSync {
     const overallStatus = primaryStatuses.includes('poor') ? 'poor' :
                          primaryStatuses.includes('needs_improvement') ? 'needs_improvement' : 'good';
 
-    // Calculate performance score (simplified)
-    const lcpScore = Math.max(0, Math.min(100, 100 - (data.lcp - 1200) / 28));
-    const clsScore = Math.max(0, Math.min(100, 100 - data.cls * 400));
-    const inpScore = data.inp ? Math.max(0, Math.min(100, 100 - (data.inp - 150) / 4.5)) : 100;
-    const performanceScore = Math.round((lcpScore * 0.25 + clsScore * 0.25 + inpScore * 0.30 + 90 * 0.20));
+    // Calculate performance score (simplified) - ensure 0-100 range
+    const lcpScore = Math.max(0, Math.min(100, 100 - (lcp - 1200) / 28));
+    const clsScore = Math.max(0, Math.min(100, 100 - cls * 400));
+    const inpScore = inp ? Math.max(0, Math.min(100, 100 - (inp - 150) / 4.5)) : 100;
+    const rawScore = lcpScore * 0.25 + clsScore * 0.25 + inpScore * 0.30 + 90 * 0.20;
+    const performanceScore = Math.max(0, Math.min(100, Math.round(rawScore)));
 
     const query = `
       INSERT INTO cwv_results (
@@ -197,16 +217,16 @@ export class GA4DatabaseSync {
     await this.pool.query(query, [
       this.projectId,
       data.pagePath,
-      data.device,
-      data.lcp,
+      device,
+      lcp,
       lcpStatus,
-      data.cls,
+      cls,
       clsStatus,
-      data.inp || null,
+      inp,
       inpStatus,
-      data.fcp,
+      fcp,
       fcpStatus,
-      data.ttfb,
+      ttfb,
       ttfbStatus,
       performanceScore,
       overallStatus

@@ -13,6 +13,7 @@ import { UserRole } from '@/types/auth';
 import { GA4Settings } from '@/components/settings/GA4Settings';
 import { GSCSettings } from '@/components/settings/GSCSettings';
 import { AISettings } from '@/components/settings/AISettings';
+import { SocialMediaSettings } from '@/components/settings/SocialMediaSettings';
 import { useProject } from '@/context/ProjectContext';
 import {
   Settings as SettingsIcon,
@@ -24,6 +25,7 @@ import {
   Save,
   Check,
   Bot,
+  Share2,
 } from 'lucide-react';
 
 interface SettingSection {
@@ -42,6 +44,7 @@ const SECTIONS: SettingSection[] = [
   { id: 'general', label: 'General', icon: SettingsIcon },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'integrations', label: 'Integrations', icon: Globe },
+  { id: 'social', label: 'Social Media', icon: Share2 },
   { id: 'ai', label: 'AI Settings', icon: Bot },
   { id: 'security', label: 'Security', icon: Lock },
   { id: 'data', label: 'Data & Privacy', icon: Database },
@@ -254,6 +257,26 @@ function SettingsContent() {
                   ) : (
                     <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg">
                       <p className="text-amber-700">Vui lòng chọn một project để cấu hình AI Settings</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeSection === 'social' && (
+                <div className="space-y-6">
+                  <h2 className="text-lg font-semibold text-gray-900">Social Media Integration</h2>
+                  <p className="text-gray-500 text-sm">
+                    Kết nối tài khoản mạng xã hội để đăng bài tự động cho project: <strong>{activeProject?.name || 'Chưa chọn project'}</strong>
+                  </p>
+                  
+                  {activeProject ? (
+                    <SocialMediaSettings 
+                      projectId={activeProject.id} 
+                      projectName={activeProject.name} 
+                    />
+                  ) : (
+                    <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg">
+                      <p className="text-amber-700">Vui lòng chọn một project để cấu hình Social Media</p>
                     </div>
                   )}
                 </div>

@@ -720,6 +720,7 @@ function ComplianceIndicator({ label, passed }: { label: string; passed: boolean
 interface AIContentWriterProps {
   brief: FullContentBrief | null;
   existingContent?: string;
+  initialContent?: GeneratedContent | null; // For restoring content when tab switches
   onContentGenerated?: (content: GeneratedContent) => void;
   className?: string;
 }
@@ -727,13 +728,14 @@ interface AIContentWriterProps {
 export function AIContentWriter({
   brief,
   existingContent,
+  initialContent,
   onContentGenerated,
   className,
 }: AIContentWriterProps) {
-  const [status, setStatus] = useState<GenerationStatus>('idle');
-  const [progress, setProgress] = useState(0);
-  const [language, setLanguage] = useState<ContentLanguage>('vi');
-  const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(null);
+  const [status, setStatus] = useState<GenerationStatus>(initialContent ? 'completed' : 'idle');
+  const [progress, setProgress] = useState(initialContent ? 100 : 0);
+  const [language, setLanguage] = useState<ContentLanguage>(initialContent?.language || 'vi');
+  const [generatedContent, setGeneratedContent] = useState<GeneratedContent | null>(initialContent || null);
   const [error, setError] = useState<string | null>(null);
 
   // Validate brief

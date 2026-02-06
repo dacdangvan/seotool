@@ -1047,6 +1047,12 @@ export class CrawlController {
       imagesCount,
       imagesWithoutAlt,
       
+      // Core Web Vitals
+      performanceScore: page.performance_score || null,
+      lcpStatus: page.lcp_status || null,
+      clsStatus: page.cls_status || null,
+      cwvStatus: page.cwv_status || null,
+      
       // Issues
       issues: page.issues || [],
       

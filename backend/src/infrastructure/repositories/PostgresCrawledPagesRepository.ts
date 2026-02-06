@@ -36,6 +36,11 @@ export interface CrawledPage {
   crawl_depth: number;
   crawled_at: string;
   issues: any[];
+  // Core Web Vitals data
+  performance_score?: number | null;
+  lcp_status?: string | null;
+  cls_status?: string | null;
+  cwv_status?: string | null;
 }
 
 export interface CrawlJob {
@@ -97,25 +102,53 @@ export class PostgresCrawledPagesRepository {
 
       // Get pages from page_content_normalized (new crawler worker data) 
       // joined with url_inventory for http_status and cwv_results for response time (TTFB) and load_time
+      // Use COALESCE to fallback to crawled_pages if title/meta_description is missing
+      // Prioritize Lab Data (PSI-API) over Field Data (CrUX-API) for consistency with Google PageSpeed
       const pagesQuery = `
+        WITH quality_cwv AS (
+          SELECT DISTINCT ON (project_id, url) 
+            project_id, url, ttfb_value, lcp_value as load_time, 
+            performance_score, lcp_status, cls_status, overall_status
+          FROM cwv_results
+          WHERE project_id = $1
+            AND device = 'mobile'
+            AND lighthouse_version IN ('PSI-API', 'CrUX-API', '11.0.0', '11.0.0-real')
+          ORDER BY project_id, url, 
+            CASE lighthouse_version 
+              WHEN 'PSI-API' THEN 1 
+              WHEN '11.0.0' THEN 2
+              WHEN '11.0.0-real' THEN 3
+              WHEN 'CrUX-API' THEN 4 
+              ELSE 5 
+            END
+        )
         SELECT 
           pcn.id,
           pcn.project_id,
           pcn.url,
-          COALESCE(pcn.http_status, ui.http_status, 200) as status_code,
-          pcn.title,
-          pcn.meta_description,
-          pcn.headings,
-          pcn.internal_links,
-          pcn.external_links,
-          pcn.images,
+          COALESCE(pcn.http_status, ui.http_status, cp.status_code, 200) as status_code,
+          COALESCE(NULLIF(pcn.title, ''), cp.title) as title,
+          COALESCE(NULLIF(pcn.meta_description, ''), cp.meta_description) as meta_description,
+          COALESCE(pcn.headings, '[]'::jsonb) as headings,
+          COALESCE(pcn.internal_links, cp.internal_links, '[]'::jsonb) as internal_links,
+          COALESCE(pcn.external_links, cp.external_links, '[]'::jsonb) as external_links,
+          COALESCE(pcn.images, cp.images, '[]'::jsonb) as images,
           pcn.content_text,
-          pcn.crawled_at,
-          COALESCE(pcn.response_time_ms, cwv.ttfb_value, 0) as response_time,
-          COALESCE(pcn.load_time_ms, cwv.load_time, 0) as load_time
+          COALESCE(pcn.crawled_at, cp.crawled_at) as crawled_at,
+          COALESCE(pcn.response_time_ms, qcwv.ttfb_value, cp.response_time, 0) as response_time,
+          COALESCE(pcn.load_time_ms, qcwv.load_time, 0) as load_time,
+          qcwv.performance_score,
+          qcwv.lcp_status,
+          qcwv.cls_status,
+          qcwv.overall_status as cwv_status,
+          cp.h1_tags as cp_h1_tags,
+          cp.h2_tags as cp_h2_tags,
+          cp.h3_tags as cp_h3_tags,
+          cp.word_count as cp_word_count
         FROM page_content_normalized pcn
         LEFT JOIN url_inventory ui ON pcn.project_id = ui.project_id AND pcn.url = ui.url
-        LEFT JOIN cwv_results cwv ON pcn.project_id = cwv.project_id AND pcn.url = cwv.url AND cwv.device = 'desktop'
+        LEFT JOIN quality_cwv qcwv ON pcn.project_id = qcwv.project_id AND pcn.url = qcwv.url
+        LEFT JOIN crawled_pages cp ON pcn.project_id = cp.project_id AND pcn.url = cp.url
         WHERE pcn.project_id = $1
         ORDER BY pcn.crawled_at DESC
       `;
@@ -161,14 +194,31 @@ export class PostgresCrawledPagesRepository {
       issues.push({ type: 'missing_meta_description', severity: 'warning', message: 'Missing meta description' });
     }
     
-    // Check H1 from headings
+    // Get H1/H2/H3 tags - prefer from headings JSON, fallback to crawled_pages arrays
     const headings = row.headings || [];
-    const h1Tags = headings.filter((h: any) => h.level === 1);
+    let h1Tags = headings.filter((h: any) => h.level === 1).map((h: any) => h.text);
+    let h2Tags = headings.filter((h: any) => h.level === 2).map((h: any) => h.text);
+    let h3Tags = headings.filter((h: any) => h.level === 3).map((h: any) => h.text);
+    
+    // Fallback to crawled_pages h1/h2/h3_tags if headings is empty
+    if (h1Tags.length === 0 && row.cp_h1_tags) {
+      h1Tags = Array.isArray(row.cp_h1_tags) ? row.cp_h1_tags : [];
+    }
+    if (h2Tags.length === 0 && row.cp_h2_tags) {
+      h2Tags = Array.isArray(row.cp_h2_tags) ? row.cp_h2_tags : [];
+    }
+    if (h3Tags.length === 0 && row.cp_h3_tags) {
+      h3Tags = Array.isArray(row.cp_h3_tags) ? row.cp_h3_tags : [];
+    }
+    
     if (h1Tags.length === 0) {
       issues.push({ type: 'missing_h1', severity: 'critical', message: 'Missing H1 tag' });
     } else if (h1Tags.length > 1) {
       issues.push({ type: 'multiple_h1', severity: 'warning', message: 'Multiple H1 tags' });
     }
+    
+    // Word count - prefer from content_text, fallback to crawled_pages
+    const wordCount = row.content_text?.split(/\s+/).length || row.cp_word_count || 0;
     
     return {
       id: row.id,
@@ -179,18 +229,23 @@ export class PostgresCrawledPagesRepository {
       load_time: parseFloat(row.load_time) || 0,
       title: row.title || '',
       meta_description: row.meta_description || '',
-      h1_tags: h1Tags.map((h: any) => h.text),
-      h2_tags: headings.filter((h: any) => h.level === 2).map((h: any) => h.text),
-      h3_tags: headings.filter((h: any) => h.level === 3).map((h: any) => h.text),
+      h1_tags: h1Tags,
+      h2_tags: h2Tags,
+      h3_tags: h3Tags,
       internal_links: row.internal_links || [],
       external_links: row.external_links || [],
       images: row.images || [],
-      word_count: row.content_text?.split(/\s+/).length || 0,
+      word_count: wordCount,
       page_size: row.content_text?.length || 0,
       crawl_depth: 0,
       content_hash: undefined,
       crawled_at: row.crawled_at,
       issues,
+      // CWV data from quality sources (CrUX, PSI, Lighthouse)
+      performance_score: row.performance_score || null,
+      lcp_status: row.lcp_status || null,
+      cls_status: row.cls_status || null,
+      cwv_status: row.cwv_status || null,
     };
   }
 

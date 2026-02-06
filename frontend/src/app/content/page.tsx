@@ -179,6 +179,14 @@ function ContentPageContent() {
               Content Planning
               <ArrowRight className="w-4 h-4" />
             </Link>
+            <Link
+              href="/content/validate"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-teal-50 text-green-700 rounded-lg hover:from-green-100 hover:to-teal-100 transition-colors border border-green-200"
+            >
+              <Search className="w-4 h-4" />
+              SEO Validator
+              <ArrowRight className="w-4 h-4" />
+            </Link>
             <button
               onClick={() => setShowCreateModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

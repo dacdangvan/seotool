@@ -39,3 +39,27 @@ kill -9 $(lsof -t -i:3000) 2>/dev/null
 
 # Kill port 3001 (Backend)  
 kill -9 $(lsof -t -i:3001) 2>/dev/null
+
+# ==========================
+# START SERVICES
+# ==========================
+
+# 1. Start Docker (PostgreSQL + Redis)
+cd /Users/dac.dangvan/Documents/VIB/SEOTOOL
+docker-compose up -d
+
+# 2. Start Backend
+cd /Users/dac.dangvan/Documents/VIB/SEOTOOL/backend
+npm run dev
+
+# 3. Start Frontend  
+cd /Users/dac.dangvan/Documents/VIB/SEOTOOL/frontend
+npm run dev
+
+# ==========================
+# NEW FEATURES (v5.1)
+# ==========================
+# - AI Image Generation: POST /projects/:id/images/generate
+# - Social Media Posts: POST /projects/:id/social/generate
+# - Publish to Facebook/Zalo/TikTok/Pinterest
+# - Gemini FREE models: gemini-2.0-flash, gemini-1.5-flash
