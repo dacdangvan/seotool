@@ -7,7 +7,12 @@ CREATE TABLE IF NOT EXISTS project_ai_configs (
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     
     -- AI Provider Settings
-    ai_provider VARCHAR(50) DEFAULT 'auto', -- 'auto', 'moltbot', 'anthropic', 'openai', 'gemini', 'template'
+    ai_provider VARCHAR(50) DEFAULT 'auto', -- 'auto', 'ollama', 'moltbot', 'anthropic', 'openai', 'gemini', 'template'
+    
+    -- Ollama Configuration (Local LLM - FREE)
+    ollama_api_url VARCHAR(500) DEFAULT 'http://localhost:11434/v1/chat/completions',
+    ollama_model VARCHAR(100) DEFAULT 'llama3:8b',
+    ollama_enabled BOOLEAN DEFAULT true,
     
     -- MoltBot Configuration
     moltbot_api_key TEXT,
@@ -31,6 +36,12 @@ CREATE TABLE IF NOT EXISTS project_ai_configs (
     custom_api_url VARCHAR(500),
     custom_api_model VARCHAR(100),
     custom_api_headers JSONB DEFAULT '{}',
+    
+    -- Grok (xAI) Configuration
+    grok_api_key TEXT,
+    
+    -- CrUX API Configuration (Core Web Vitals)
+    crux_api_key TEXT,
     
     -- Generation Settings
     max_tokens INTEGER DEFAULT 4000,
@@ -65,3 +76,8 @@ CREATE TRIGGER trigger_update_project_ai_config_updated_at
 -- Comment
 COMMENT ON TABLE project_ai_configs IS 'Stores AI provider configuration for each project';
 COMMENT ON COLUMN project_ai_configs.ai_provider IS 'auto = use first available, or specify specific provider';
+COMMENT ON COLUMN project_ai_configs.ollama_api_url IS 'Ollama API URL (local LLM server)';
+COMMENT ON COLUMN project_ai_configs.ollama_model IS 'Ollama model name (e.g., llama3:8b, gpt-oss:20b)';
+COMMENT ON COLUMN project_ai_configs.ollama_enabled IS 'Enable/disable Ollama as fallback provider';
+COMMENT ON COLUMN project_ai_configs.grok_api_key IS 'xAI Grok API key';
+COMMENT ON COLUMN project_ai_configs.crux_api_key IS 'Google CrUX API key for Core Web Vitals data';
