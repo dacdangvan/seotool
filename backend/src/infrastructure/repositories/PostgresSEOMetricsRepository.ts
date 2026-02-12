@@ -159,22 +159,25 @@ export class PostgresSEOMetricsRepository {
     `;
 
     try {
-      // Execute both queries in parallel
-      const [ga4Result, gscResult] = await Promise.all([
-        this.pool.query(ga4Query, [projectId, range.startDate, range.endDate]),
-        this.pool.query(gscQuery, [projectId, range.startDate, range.endDate])
-      ]);
+      // Execute GA4 query
+      const ga4Result = await this.pool.query(ga4Query, [projectId, range.startDate, range.endDate]);
 
-      // Create maps for easy lookup
+      // Try to get GSC data if table exists
       const gscDataMap = new Map();
-      gscResult.rows.forEach(row => {
-        gscDataMap.set(row.date.toISOString().split('T')[0], {
-          clicks: parseInt(row.total_clicks) || 0,
-          impressions: parseInt(row.total_impressions) || 0,
-          ctr: parseFloat(row.avg_ctr) || 0,
-          position: parseFloat(row.avg_position) || 0,
+      try {
+        const gscResult = await this.pool.query(gscQuery, [projectId, range.startDate, range.endDate]);
+        gscResult.rows.forEach(row => {
+          gscDataMap.set(row.date.toISOString().split('T')[0], {
+            clicks: parseInt(row.total_clicks) || 0,
+            impressions: parseInt(row.total_impressions) || 0,
+            ctr: parseFloat(row.avg_ctr) || 0,
+            position: parseFloat(row.avg_position) || 0,
+          });
         });
-      });
+      } catch {
+        // GSC table doesn't exist, continue with GA4 data only
+        this.logger.debug('GSC table not found, using GA4 data only');
+      }
 
       // Merge GA4 and GSC data
       const mergedMetrics = ga4Result.rows.map(ga4Row => {
